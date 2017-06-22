@@ -14,22 +14,22 @@ public:
     std::string _module = "";
     std::string _subModule = "";
     std::string _command = "";
-    std::string _args = "";
+    std::string _data = "";
     if (!json.empty() && json != ""){
       DynamicJsonBuffer _buffer(json.length());
       JsonObject& _obj = _buffer.parseObject(json.c_str());
       _module = _obj["module"].is<const char*>() ? _obj["module"].as<const char*>() : "";
       _subModule = _obj["sub"].is<const char*>() ? _obj["sub"].as<const char*>() : "";
       _command = _obj["command"].is<const char*>() ? _obj["command"].as<const char*>() : "";
-      _args = _obj["args"].is<const char*>() ? _obj["args"].as<const char*>() : "";
+      _data = _obj["data"].is<const char*>() ? _obj["data"].as<const char*>() : "";
     };
-    return new nodeQuery(_module, _subModule, _command, _args);
+    return new nodeQuery(_module, _subModule, _command, _data);
   };
   nodeQuery(std::string module = "", std::string subModule = "", std::string command = "", std::string data = ""){
     this->_module = module;
     this->_subModule = subModule;
     this->_command = command;
-    this->_data = args;
+    this->_data = data;
   };
   std::string getModule(){ return this->_module; };
   std::string getSubModule(){ return this->_subModule; };

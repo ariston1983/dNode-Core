@@ -8,9 +8,9 @@ private:
   std::string _module;
   std::string _subModule;
   std::string _command;
-  std::string _args;
+  std::string _data;
 public:
-  nodeQuery* parse(std::string json){
+  static nodeQuery* parse(std::string json){
     std::string _module = "";
     std::string _subModule = "";
     std::string _command = "";
@@ -25,16 +25,16 @@ public:
     };
     return new nodeQuery(_module, _subModule, _command, _args);
   };
-  nodeQuery(std::string module = "", std::string subModule = "", std::string command = "", std::string args = ""){
+  nodeQuery(std::string module = "", std::string subModule = "", std::string command = "", std::string data = ""){
     this->_module = module;
     this->_subModule = subModule;
     this->_command = command;
-    this->_args = args;
+    this->_data = args;
   };
   std::string getModule(){ return this->_module; };
   std::string getSubModule(){ return this->_subModule; };
   std::string getCommand(){ return this->_command; };
-  bool hasArgs(){ return !this->_args.empty() && this->_args != ""; };
-  int argsLength(){ return this->_args.length(); };
-  std::string getArgs(){ return this->_args; };
+  bool hasData(){ return !this->_data.empty() && this->_data != ""; };
+  int getDataLength(){ return this->hasData() ? this->_data.length() : -1; };
+  std::string getData(){ return this->_data; };
 };

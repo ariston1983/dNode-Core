@@ -1,6 +1,6 @@
 {
   "name": "dNode-Core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "keywords": "iot, node, arduino, esp8266",
   "description": "Framework to manage IoT basic communication and module for ESP8266 based on Arduino",
   "repository": {

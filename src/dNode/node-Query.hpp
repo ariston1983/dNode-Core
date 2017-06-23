@@ -44,6 +44,6 @@ public:
     _obj["sub-module"] = this->_subModule.c_str();
     _obj["command"] = this->_command.c_str();
     _obj["data"] = this->_data.c_str();
-    return stringify(_obj);
+    return nodeJSON::stringify(_obj);
   };
 };

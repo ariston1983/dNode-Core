@@ -18,20 +18,20 @@ protected:
 public:
   nodeConfig(std::string module){};
   bool load(bool reset = false){
-    if (fileExists(this->configFile(), std::string("/config")))
-      return this->parseJSON(readFile(this->configFile(), std::string("/config")));
+    if (nodeFile::exists(this->configFile(), std::string("/config")))
+      return this->parseJSON(nodeFile::readFile(this->configFile(), std::string("/config")));
     else{
       if (reset) this->reset();
       return false;
     }
   };
-  bool save(){ return writeFile(this->toJSON(), this->configFile(), std::string("/config")); };
+  bool save(){ return nodeFile::writeFile(this->toJSON(), this->configFile(), std::string("/config")); };
   virtual void reset(){ };
-  bool remove(){ return deleteFile(this->configFile(), std::string("/config")); };
+  bool remove(){ return nodeFile::removeFile(this->configFile(), std::string("/config")); };
   virtual std::string toJSON(){
     DynamicJsonBuffer _buffer(512);
     JsonObject& _obj = _buffer.createObject();
     _obj["module"] = this->_module.c_str();
-    return stringify(_obj);
+    return nodeJSON::stringify(_obj);
   };
 };

@@ -32,6 +32,6 @@ public:
     _obj["message"] = this->_message.c_str();
     for (mapData_Type::iterator _it = this->getData()->begin(); _it != this->getData()->end(); ++_it)
       _obj[_it->first.c_str()] = _it->second.c_str();
-    return stringify(_obj);
+    return nodeJSON::stringify(_obj);
   };
 };

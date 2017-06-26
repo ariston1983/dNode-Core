@@ -22,4 +22,16 @@ public:
     return pass;
   };
 };
+void LOG(std::string message, int code = 0, std::string data = ""){
+  nodeLogger::log(message, code, data);
+};
+template<typename TResult>
+TResult LOG(std::string message, TResult pass, int code = 0, std::string data = ""){
+  nodeLogger::log(message, code, data);
+  return pass;
+};
+
+#ifndef __NODE_DEFAULT_LOGGER__
+#define __NODE_DEFAULT_LOGGER__
 nodeLogger::logPrinter nodeLogger::_printer = &nodeLogger::emptyPrinter;
+#endif

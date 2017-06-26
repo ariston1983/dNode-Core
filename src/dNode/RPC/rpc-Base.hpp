@@ -39,6 +39,12 @@ private:
   std::string _uid;
   std::string _module;
   std::string _method;
+protected:
+  IRPCResponse(std::string uid, std::string module, std::string method){
+    this->_uid = uid;
+    this->_module = module;
+    this->_method = method;
+  };
 public:
   virtual void fillJSON(JsonObject &json){
     json["uid"] = this->_uid.c_str();

@@ -33,7 +33,7 @@ private:
 protected:
   rpcResponse(std::string uid, std::string module, std::string method, TResponseData* data)
   : IRPCResponse(uid, module, method){
-    this->_data = data;
+    this->_data = static_cast<IRPCData*>(data);
   };
 public:
   rpcResponse<TResponseData>* create(std::string uid, std::string module, std::string method, TResponseData* data){
@@ -59,10 +59,34 @@ protected:
     this->_message = message;
     this->_details = details;
   };
+public:
+  static rpcException* create(std::string type, std::string message, std::string details = ""){
+    return new rpcException(type, message, details);
+  };
   virtual void fillJSON(JsonObject& json){
     IRPCData::fillJSON(json);
     json["type"] = this->_type.c_str();
     json["message"] = this->_message.c_str();
     json["details"] = this->_details.c_str();
+  };
+};
+template<typename TNativeData>
+class rpcNative: public IRPCData{
+private:
+  std::string _type;
+  TNativeData _data;
+protected:
+  rpcNative(std::string type, TNativeData data): IRPCData("native"){
+    this->_type = type;
+    this->_data = data;
+  };
+public:
+  static rpcNative<TNativeData>* create(std::string name, TNativeData data){
+    return new rpcNative<TNativeData>(name, data);
+  };
+  virtual void fillJSON(JsonObject& json){
+    IRPCData::fillJSON(json);
+    json["type"] = this->_type.c_str();
+    json["data"] = this->_data;
   };
 };

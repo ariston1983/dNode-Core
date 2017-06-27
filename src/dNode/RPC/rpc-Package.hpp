@@ -26,27 +26,6 @@ public:
     else return NULL;
   };
 };
-template<class TResponseData>
-class rpcResponse: public IRPCResponse{
-private:
-  IRPCData* _data;
-protected:
-  rpcResponse(std::string uid, std::string module, std::string method, TResponseData* data)
-  : IRPCResponse(uid, module, method){
-    this->_data = static_cast<IRPCData*>(data);
-  };
-public:
-  rpcResponse<TResponseData>* create(std::string uid, std::string module, std::string method, TResponseData* data){
-    return new rpcResponse<TResponseData>(uid, module, method, data);
-  };
-  virtual void fillJSON(JsonObject &json){
-    IRPCResponse::fillJSON(json);
-    if (this->_data != NULL){
-      JsonObject& _data = json.createNestedObject("data");
-      this->_data->fillJSON(_data);
-    }
-  };
-};
 class rpcException: public IRPCData{
 private:
   std::string _type;
@@ -88,5 +67,37 @@ public:
     IRPCData::fillJSON(json);
     json["type"] = this->_type.c_str();
     json["data"] = this->_data;
+  };
+};
+class rpcResponse: public IRPCResponse{
+private:
+  IRPCData* _data;
+protected:
+  rpcResponse(std::string uid, std::string module, std::string method, IRPCData* data = NULL)
+  : IRPCResponse(uid, module, method){
+    this->_data = NULL;
+    if (data != NULL) this->_data = data;
+  };
+public:
+  static rpcResponse* create(std::string uid, std::string module, std::string method, IRPCData* data = NULL){
+    return new rpcResponse(uid, module, method, data);
+  };
+  template<typename TResponseData>
+  static rpcResponse* create(std::string uid, std::string module, std::string method, TResponseData* data = NULL){
+    return new rpcResponse(uid, module, method, static_cast<IRPCData*>(data));
+  };
+  void exception(std::string type, std::string message, std::string details = ""){
+    this->_data = rpcException::create(type, message, details);
+  };
+  template<typename TNative>
+  void native(std::string type, TNative value){
+    this->_data = rpcNative<TNative>::create(type, value);
+  };
+  virtual void fillJSON(JsonObject &json){
+    IRPCResponse::fillJSON(json);
+    if (this->_data != NULL){
+      JsonObject& _data = json.createNestedObject("data");
+      this->_data->fillJSON(_data);
+    }
   };
 };

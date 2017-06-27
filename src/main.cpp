@@ -2,6 +2,7 @@
 #include <string>
 #include "ArduinoJson.h"
 #include "dNode-Core.hpp"
+#include "Test/rpc-Test.hpp"
 
 int i_scenario(){ return 10; };
 int i_compare(){ return 1; };
@@ -13,16 +14,19 @@ void setup(){
   Serial.println();
 
   TEST_INIT();
-  RUN_TEST<int>("Simple")->scenario(&i_scenario)->checkIf(TEST_GREATER_OR_EQUAL)->with(&i_compare)->execute();
-  RUN_TEST<std::string>("Simple")->scenario(&s_scenario)->checkIf(TEST_EQUAL)->to("Hello")->execute();
-
-  //rpcNative<const char*>* _data = rpcNative<const char*>::create("string", "Hello World");
-  rpcNative<bool>* _data = rpcNative<bool>::create("bool", false);
-  //IRPCData* _cast = static_cast<IRPCData*>(_data);
-  rpcResponse<rpcNative<bool>>* _resp = rpcResponse<rpcNative<bool>>::create("uid", "module", "method", _data);
-  //DynamicJsonBuffer _buffer(512);
-  //JsonObject& _obj = _buffer.createObject();
-  //_resp->fillJSON(_obj);
-  //_obj.printTo(Serial);
+  RUN_TEST<int>("TEST_COMPARE_WITH_FUNCTION")
+    ->scenario(&i_scenario)
+    ->checkIf(TEST_GREATER_OR_EQUAL)
+    ->with(&i_compare)
+    ->execute();
+  RUN_TEST<std::string>("TEST_COMPARE_WITH_VALUE")
+    ->scenario(&s_scenario)
+    ->checkIf(TEST_EQUAL)
+    ->to("Hello")->execute();
+  RUN_TEST<std::string>("RPC_RESPONSE_CUSTOM_DATA")
+    ->scenario(&TEST_SCENARIO_RPC_RESPONSE_CUSTOM_DATA)
+    ->checkIf(TEST_EQUAL)
+    ->with(&TEST_COMPARER_RPC_RESPONSE_CUSTOM_DATA)
+    ->execute();
 };
 void loop(){};

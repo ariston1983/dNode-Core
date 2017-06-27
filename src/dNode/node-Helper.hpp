@@ -6,6 +6,14 @@
 #include "ArduinoJson.h"
 
 /******************************************************************************
+ * Pointer helper
+ ******************************************************************************/
+template<typename T> inline
+void delete_if_pointer(T const&){ };
+template<typename T> inline
+void delete_if_pointer(T* const& p){ delete p; };
+
+/******************************************************************************
  * JSON object modifier
  ******************************************************************************/
 class nodeJSON{

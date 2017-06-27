@@ -66,6 +66,9 @@ private:
 protected:
   IRPCResponse* onReceive(IRPCRequest* request){ return this->_receivedHandler(this->_engine, request); };
 public:
+  ~IRPCComm(){
+    delete this->_engine;
+  };
   void setRPCEngine(IRPCBase* engine){ this->_engine = engine; };
   void event_OnReceived(received_Handler handler){ this->_receivedHandler = handler; };
 };

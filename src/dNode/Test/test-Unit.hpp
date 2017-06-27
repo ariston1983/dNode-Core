@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "../node-Helper.hpp"
 #include "../Logger/node-Logger.hpp"
 
 enum TestComparer{
@@ -59,6 +60,8 @@ public:
       _result = this->_with();
       LOG("compare function executed", 2);
     }
+    delete_if_pointer(_eval);
+    delete_if_pointer(_result);
     LOG("target defined", 2);
     bool _test = false;
     LOG("compare", 2);

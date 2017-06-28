@@ -14,6 +14,30 @@ template<typename T> inline
 void delete_if_pointer(T* const& p){ delete p; };
 
 /******************************************************************************
+ * Type helper
+ ******************************************************************************/
+template<typename T, typename U>
+struct isSame{ static const bool value = false; };
+template<typename T>
+struct isSame<T, T>{ static const bool value = true; };
+template<typename T>
+bool isNative(){
+  return
+    isSame<T, bool>::value ||
+    isSame<T, char>::value ||
+    isSame<T, unsigned char>::value ||
+    isSame<T, byte>::value ||
+    isSame<T, int16_t>::value ||
+    isSame<T, int32_t>::value ||
+    isSame<T, int64_t>::value ||
+    isSame<T, uint16_t>::value ||
+    isSame<T, uint32_t>::value ||
+    isSame<T, uint64_t>::value ||
+    isSame<T, float>::value ||
+    isSame<T, const char*>::value;
+};
+
+/******************************************************************************
  * JSON object modifier
  ******************************************************************************/
 class nodeJSON{

@@ -2,8 +2,7 @@
 
 #include <string>
 #include "node-Module.hpp"
-#include "node-Query.hpp"
-#include "node-Response.hpp"
+#include "../RPC/node-RPC.hpp"
 
 template <typename TMod>
 TMod* createModule(){ return new TMod(); };
@@ -40,9 +39,7 @@ public:
     }
     return true;
   };
-  static nodeResponse* exec(nodeQuery* query){
-    nodeModule* _mod = create(query->getModule());
-    if (_mod == NULL) return NULL;
-    else return _mod->exec(query);
+  IRPCResponse* exec(std::string module, std::string method, std::string params){
+    
   };
 };

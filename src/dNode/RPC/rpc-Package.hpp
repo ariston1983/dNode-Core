@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "../node-Helper.hpp"
 #include "rpc-Base.hpp"
 
 class rpcRequest: public IRPCRequest{
@@ -15,17 +16,20 @@ public:
     if (value.empty() || value == "") return NULL;
     DynamicJsonBuffer _buffer(value.length());
     JsonObject& _obj = _buffer.parseObject(value.c_str());
+    rpcRequest* _request = NULL;
     if (_obj["uid"].is<const char*>() && _obj["module"].is<const char*>() && _obj["method"].is<const char*>()){
-      return rpcRequest::create(
+      _request = rpcRequest::create(
         _obj["uid"].as<const char*>(),
         _obj["module"].as<const char*>(),
         _obj["method"].as<const char*>(),
         _obj["params"].is<const char*>() ? _obj["params"].as<const char*>() : ""
       );
     }
-    else return NULL;
+    delete_if_pointer(_obj);
+    return _request;
   };
 };
+
 class rpcException: public IRPCData{
 private:
   std::string _type;
@@ -49,6 +53,7 @@ public:
     json["details"] = this->_details.c_str();
   };
 };
+
 template<typename TNativeData>
 class rpcNative: public IRPCData{
 private:
@@ -60,6 +65,9 @@ protected:
     this->_data = data;
   };
 public:
+  ~rpcNative(){
+    delete_if_pointer(this->_data);
+  };
   static rpcNative<TNativeData>* create(std::string name, TNativeData data){
     return new rpcNative<TNativeData>(name, data);
   };
@@ -69,29 +77,33 @@ public:
     json["data"] = this->_data;
   };
 };
+
 class rpcResponse: public IRPCResponse{
 private:
   IRPCData* _data;
 protected:
-  rpcResponse(std::string uid, std::string module, std::string method, IRPCData* data = NULL)
+  rpcResponse(std::string uid, std::string module, std::string method)
   : IRPCResponse(uid, module, method){
     this->_data = NULL;
-    if (data != NULL) this->_data = data;
   };
 public:
-  static rpcResponse* create(std::string uid, std::string module, std::string method, IRPCData* data = NULL){
-    return new rpcResponse(uid, module, method, data);
+  ~rpcResponse(){
+    delete_if_pointer(this->_data);
   };
-  template<typename TResponseData>
-  static rpcResponse* create(std::string uid, std::string module, std::string method, TResponseData* data = NULL){
-    return new rpcResponse(uid, module, method, static_cast<IRPCData*>(data));
+  static rpcResponse* create(std::string uid, std::string module, std::string method){
+    return new rpcResponse(uid, module, method);
   };
-  void exception(std::string type, std::string message, std::string details = ""){
+  bool exception(std::string type, std::string message, std::string details = ""){
     this->_data = rpcException::create(type, message, details);
+    return true;
   };
   template<typename TNative>
-  void native(std::string type, TNative value){
-    this->_data = rpcNative<TNative>::create(type, value);
+  bool native(std::string type, TNative value){
+    if (isNative<TNative>()){
+      this->_data = rpcNative<TNative>::create(type, value);
+      return true;
+    }
+    else return false;
   };
   virtual void fillJSON(JsonObject &json){
     IRPCResponse::fillJSON(json);

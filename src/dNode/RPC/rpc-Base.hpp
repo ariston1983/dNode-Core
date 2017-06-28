@@ -3,6 +3,9 @@
 #include <string>
 #include "ArduinoJson.h"
 
+/**************************************************************
+ * RPC package base
+ **************************************************************/
 class IRPCRequest{
 private:
   std::string _uid;
@@ -52,12 +55,20 @@ public:
     json["method"] = this->_method.c_str();
   };
 };
+/**************************************************************/
 
+/**************************************************************
+ * RPC node base
+ **************************************************************/
 class IRPCBase{
 public:
   IRPCResponse* exec(IRPCRequest* request){ return NULL; };
 };
+/**************************************************************/
 
+/**************************************************************
+ * RPC communicator base
+ **************************************************************/
 class IRPCComm{
   typedef IRPCResponse*(*received_Handler)(IRPCBase*, IRPCRequest*);
 private:
@@ -67,8 +78,9 @@ protected:
   IRPCResponse* onReceive(IRPCRequest* request){ return this->_receivedHandler(this->_engine, request); };
 public:
   ~IRPCComm(){
-    delete this->_engine;
+    delete_if_pointer(_engine);
   };
   void setRPCEngine(IRPCBase* engine){ this->_engine = engine; };
   void event_OnReceived(received_Handler handler){ this->_receivedHandler = handler; };
 };
+/**************************************************************/

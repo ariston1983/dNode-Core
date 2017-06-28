@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rpc-Base.hpp"
+#include "../Module/node-Factory.hpp"
 
 IRPCResponse* rpc_OnReceived_EventHandler(IRPCBase* context, IRPCRequest* request){
   return context->exec(request);
@@ -17,5 +18,8 @@ public:
       this->_comm->setRPCEngine(this);
       this->_comm->event_OnReceived(&rpc_OnReceived_EventHandler);
     }
+  };
+  virtual IRPCResponse* exec(IRPCRequest* request){
+
   };
 };

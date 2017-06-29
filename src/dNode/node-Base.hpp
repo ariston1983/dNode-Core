@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Arduino.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -31,18 +32,18 @@ public:
     this->_module = module;
     this->_name = name;
   };
+  std::string getModule(){ return this->_module; };
+  std::string getName(){ return this->_name; };
   RemoteMethod* addParam(std::string name, std::string type){
     this->getParams()->insert(std::make_pair(name, type));
     return this;
   };
   virtual void fillJSON(JsonVariant json){
-    if (json.is<JsonArray>())
-      this->fillJSON(json.as<JsonArray>().createNestedObject());
+    if (json.is<JsonArray>()) this->fillJSON(json.as<JsonArray>().createNestedObject());
     else if (json.is<JsonObject>()){
-      JsonObject& _remoteMethod = json.as<JsonObject>().createNestedObject(this->getUniqueName().c_str());
-      JsonArray& _params = _remoteMethod.createNestedArray("params");
+      JsonArray& _remoteMethod = json.as<JsonObject>().createNestedArray(strdup(this->getUniqueName().c_str()));
       for (param_Type::iterator _it = this->getParams()->begin(); _it != this->getParams()->end(); ++_it){
-        JsonObject& _param = _params.createNestedObject();
+        JsonObject& _param = _remoteMethod.createNestedObject();
         _param["name"] = _it->first.c_str();
         _param["type"] = _it->second.c_str();
       }
@@ -51,7 +52,7 @@ public:
   virtual std::string toJSON(){
     DynamicJsonBuffer _buffer(512);
     JsonObject& _obj = _buffer.createObject();
-    fillJSON(_obj);
+    this->fillJSON(_obj);
     std::string _json = nodeJSON::stringify(_obj);
     delete_if_pointer(_obj);
     return _json;
@@ -61,6 +62,7 @@ RemoteMethod* createRemoteMethod(std::string module, std::string name){
   return new RemoteMethod(module, name);
 };
 class IExecutable{
+  typedef std::vector<RemoteMethod*> listRemoteMethod_Type;
 public:
   virtual std::vector<RemoteMethod*>* getRemoteMethods(){ return NULL; };
   virtual IResult* execute(std::string method, std::string params){ return NULL; };

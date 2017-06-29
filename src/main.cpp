@@ -8,11 +8,11 @@
 class modTest: public IModule{
 public:
   modTest(): IModule("modTest", "1.0"){ };
-  virtual std::vector<RemoteMethod*>* getRemoteMethods(){
-    std::vector<RemoteMethod*>* _methods = new std::vector<RemoteMethod*>();
+  virtual listRemoteMethod_Type* getRemoteMethods(){
+    listRemoteMethod_Type* _methods = new listRemoteMethod_Type();
     _methods->push_back(createRemoteMethod("modTest", "test1")->addParam("param1", "string"));
-    _methods->push_back(createRemoteMethod("modTest", "test2")->addParam("param1", "int")->addParam("param2", "string"));
-    _methods->push_back(createRemoteMethod("modTest", "test3")->addParam("param1", "float")->addParam("param2", "int")->addParam("param3", "bool"));
+    _methods->push_back(createRemoteMethod("modTest", "test2")->addParam("param1", "int"));//->addParam("param2", "string"));
+    _methods->push_back(createRemoteMethod("modTest", "test3")->addParam("param1", "float"));//->addParam("param2", "int")->addParam("param3", "bool"));
     return _methods;
   };
 };
@@ -30,7 +30,7 @@ void setup(){
   DynamicJsonBuffer _buffer(512);
   JsonArray& _arr = _buffer.createArray();
   for (std::vector<RemoteMethod*>::iterator _method = _methods->begin(); _method != _methods->end(); ++_method){
-    Serial.println((*_method)->toJSON().c_str());
+    //Serial.println((*_method)->toJSON().c_str());
     (*_method)->fillJSON(_arr);
   };
   Serial.println(nodeJSON::stringify(_arr).c_str());

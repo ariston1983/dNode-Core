@@ -34,7 +34,8 @@ bool isNative(){
     isSame<T, uint32_t>::value ||
     isSame<T, uint64_t>::value ||
     isSame<T, float>::value ||
-    isSame<T, const char*>::value;
+    isSame<T, const char*>::value ||
+    isSame<T, std::string>::value;
 };
 
 /******************************************************************************

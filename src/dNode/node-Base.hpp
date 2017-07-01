@@ -8,9 +8,9 @@
 
 class IObject{
 public:
-  virtual bool operator==(IObject* rhs){
+  friend bool operator==(IObject& lhs, IObject& rhs){
     Serial.println("call == operator");
-    return this->equal(rhs);
+    return lhs.equal(&rhs);
   };
   virtual bool equal(IObject* obj){
     Serial.println(this->toString().c_str());

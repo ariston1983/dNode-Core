@@ -3,6 +3,13 @@
 #include "../dNode/node-Base.hpp"
 #include "../dNode/Test/node-Tester.hpp"
 
+IResult* SCENARIO_IOBJECT_NATIVE_EQUAL(){
+  return (new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
+};
+IResult* COMPARE_IOBJECT_NATIVE_EQUAL(){
+  return (new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
+};
+
 class JsonSupport: public IJSONSupport{
 private:
   std::string _prop;
@@ -145,6 +152,11 @@ std::string SCENARIO_IMODULE_EXEC_NOMETHOD(){
 };
 
 void RUN_NODEBASE_TEST(){
+  RUN_TEST<IResult*>("IOBJECT_NATIVE_EQUAL")
+    ->scenario(&SCENARIO_IOBJECT_NATIVE_EQUAL)
+    ->checkIf(TEST_EQUAL)
+    ->with(&COMPARE_IOBJECT_NATIVE_EQUAL)
+    ->execute();
   RUN_TEST<std::string>("JSONSUPPORT_FROM_JSON")
     ->scenario(&SCENARIO_JSONSUPPORT_FROM_JSON)
     ->checkIf(TEST_EQUAL)

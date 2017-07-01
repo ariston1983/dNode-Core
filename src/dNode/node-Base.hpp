@@ -6,8 +6,23 @@
 #include <map>
 #include "node-Helper.hpp"
 
-class IJSONSupport{
+class IObject{
 public:
+  virtual bool operator==(IObject* rhs){
+    Serial.println("call == operator");
+    return this->equal(rhs);
+  };
+  virtual bool equal(IObject* obj){
+    Serial.println(this->toString().c_str());
+    Serial.println(obj->toString().c_str());
+    return this->toString() == obj->toString();
+  };
+  virtual std::string toString(){ return ""; };
+};
+
+class IJSONSupport: public IObject{
+public:
+  virtual std::string toString(){ return this->toJSON(); };
   virtual bool fromJSON(std::string json){ return false; };
   virtual void fillJSON(JsonVariant json){ };
   virtual std::string toJSON(){ return ""; };

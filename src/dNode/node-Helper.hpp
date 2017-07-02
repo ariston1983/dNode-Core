@@ -16,6 +16,12 @@ void delete_if_pointer(T* const& p){ delete p; };
 /******************************************************************************
  * Type helper
  ******************************************************************************/
+template<typename T>
+struct pointer_template{ static const bool value = false; };
+template<typename T>
+struct pointer_template<T*>{ static const bool value = true; };
+template<typename T>
+bool isPointer(){ return pointer_template<T>::value; }
 template<typename T, typename U>
 struct isSame{ static const bool value = false; };
 template<typename T>

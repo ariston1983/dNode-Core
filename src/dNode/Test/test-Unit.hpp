@@ -16,6 +16,7 @@ enum TestComparer{
 template<typename TTestValue>
 class testUnit{
   typedef TTestValue(*function)();
+  typedef bool(*compFunc)(TTestValue*, TTestValue*);
 private:
   std::string _testname;
   function _scenario;

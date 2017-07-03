@@ -3,11 +3,15 @@
 #include "../dNode/node-Base.hpp"
 #include "../dNode/Test/node-Tester.hpp"
 
-IResult& SCENARIO_IOBJECT_NATIVE_EQUAL(){
-  return *(new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
+IResult* SCENARIO_IOBJECT_NATIVE_EQUAL(){
+  return (new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
 };
-IResult& COMPARE_IOBJECT_NATIVE_EQUAL(){
-  return *(new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
+bool EVAL_IOBJECT_NATIVE_EQUAL(TestComparer op, IResult* value, IResult* target){
+  IResult* _comp = (new IResult("TEST_MOD", "equal"))->setData(nativeData<int>("int", (int)100));
+  switch(op){
+    case TEST_EQUAL: return value->equal(_comp); break;
+    default: return false;
+  };
 };
 
 class JsonSupport: public IJSONSupport{
@@ -142,76 +146,79 @@ protected:
 public:
   execTester(): IModule("execTester"){ };
 };
-std::string SCENARIO_IMODULE_EXEC_ONEXECUTE(){
-  execTester* _tester = new execTester();
-  return _tester->execute("onExecute", "Hello World")->toJSON();
+IResult* SCENARIO_IMODULE_EXEC_ONEXECUTE(){
+  return (new execTester())->execute("onExecute", "Hello World");
 };
-std::string SCENARIO_IMODULE_EXEC_NOMETHOD(){
-  execTester* _tester = new execTester();
-  return _tester->execute("onNoMethod", "Hello World")->toJSON();
+bool EVAL_IMODULE_EXEC_ONEXECUTE(TestComparer op, IResult* value, IResult* target){
+  IResult* _comp = (new IResult("execTester", "onExecute"))->setData(NativeData<std::string>::create("string", "Hello World"));
+  return value->equal(_comp);
+};
+IResult* SCENARIO_IMODULE_EXEC_NOMETHOD(){
+  return (new execTester())->execute("onNoMethod", "Hello World");
+};
+bool EVAL_IMODULE_EXEC_NOMETHOD(TestComparer op, IResult* value, IResult* target){
+  IResult* _comp = (new IResult("execTester", "onNoMethod"))->setData(exceptionData("MethodNotFound", "Method [onNoMethod] not found"));
+  return value->equal(_comp);
 };
 
 void RUN_NODEBASE_TEST(){
-  RUN_TEST<IResult&>("IOBJECT_NATIVE_EQUAL")
+  RUN_TEST<IResult*>("IOBJECT_NATIVE_EQUAL")
     ->scenario(&SCENARIO_IOBJECT_NATIVE_EQUAL)
-    ->checkIf(TEST_EQUAL)
-    ->with(&COMPARE_IOBJECT_NATIVE_EQUAL)
+    ->evalWith(TEST_EQUAL, &EVAL_IOBJECT_NATIVE_EQUAL)
     ->execute();
   RUN_TEST<std::string>("JSONSUPPORT_FROM_JSON")
     ->scenario(&SCENARIO_JSONSUPPORT_FROM_JSON)
-    ->checkIf(TEST_EQUAL)
-    ->to("Hello")
+    ->compareTo(TEST_EQUAL, "Hello")
     ->execute();
   RUN_TEST<std::string>("JSONSUPPORT_TO_JSON")
     ->scenario(&SCENARIO_JSONSUPPORT_TO_JSON)
-    ->checkIf(TEST_EQUAL)
-    ->to(JSON_SOURCE)
+    ->compareTo(TEST_EQUAL, JSON_SOURCE)
     ->execute();
   RUN_TEST<std::string>("JSONSUPPORT_FILL_OBJECT")
     ->scenario(&SCENARIO_JSONSUPPORT_FILL_OBJECT)
-    ->checkIf(TEST_EQUAL)
-    ->to(JSON_SOURCE)
+    ->compareTo(TEST_EQUAL, JSON_SOURCE)
     ->execute();
   RUN_TEST<std::string>("JSONSUPPORT_FILL_ARRAY")
     ->scenario(&SCENARIO_JSONSUPPORT_FILL_ARRAY)
-    ->checkIf(TEST_EQUAL)
-    ->to("[" + JSON_SOURCE + "]")
+    ->compareTo(TEST_EQUAL, "[" + JSON_SOURCE + "]")
     ->execute();
 
   RUN_TEST<std::string>("RESULTDATA_NATIVE_BOOL")
     ->scenario(&SCENARIO_RESULTDATA_NATIVE_BOOL)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"kind\":\"native\",\"type\":\"bool\",\"value\":false}")
+    ->compareTo(TEST_EQUAL, "{\"kind\":\"native\",\"type\":\"bool\",\"value\":false}")
     ->execute();
   RUN_TEST<std::string>("RESULTDATA_NATIVE_CHAR")
     ->scenario(&SCENARIO_RESULTDATA_NATIVE_CHAR)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"kind\":\"native\",\"type\":\"char\",\"value\":65}")
+    ->compareTo(TEST_EQUAL, "{\"kind\":\"native\",\"type\":\"char\",\"value\":65}")
     ->execute();
   RUN_TEST<std::string>("RESULTDATA_NATIVE_INT")
     ->scenario(&SCENARIO_RESULTDATA_NATIVE_INT)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"kind\":\"native\",\"type\":\"int\",\"value\":100}")
+    ->compareTo(TEST_EQUAL, "{\"kind\":\"native\",\"type\":\"int\",\"value\":100}")
     ->execute();
   RUN_TEST<std::string>("RESULTDATA_NATIVE_CONSTCHAR")
     ->scenario(&SCENARIO_RESULTDATA_NATIVE_CONSTCHAR)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello\"}")
+    ->compareTo(TEST_EQUAL, "{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello\"}")
     ->execute();
   RUN_TEST<std::string>("RESULTDATA_NATIVE_STRING")
     ->scenario(&SCENARIO_RESULTDATA_NATIVE_STRING)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello\"}")
+    ->compareTo(TEST_EQUAL, "{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello\"}")
     ->execute();
 
   RUN_TEST<std::string>("IRESULT_NATIVE_STRING")
     ->scenario(&SCENARIO_IRESULT_NATIVE_STRING)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"TEST_MOD.test\":{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello World\"}}")
+    ->compareTo(TEST_EQUAL, "{\"TEST_MOD.test\":{\"kind\":\"native\",\"type\":\"string\",\"value\":\"Hello World\"}}")
     ->execute();
   RUN_TEST<std::string>("IRESULT_OBJECT")
     ->scenario(&SCENARIO_IRESULT_OBJECT)
-    ->checkIf(TEST_EQUAL)
-    ->to("{\"TEST_MOD.testObject\":{\"kind\":\"object\",\"type\":\"SimpleObject\",\"data\":{\"val1\":\"Hello World\",\"val2\":100}}}")
+    ->compareTo(TEST_EQUAL, "{\"TEST_MOD.testObject\":{\"kind\":\"object\",\"type\":\"SimpleObject\",\"data\":{\"val1\":\"Hello World\",\"val2\":100}}}")
+    ->execute();
+
+  RUN_TEST<IResult*>("IMODULE_EXEC_ONEXECUTE")
+    ->scenario(&SCENARIO_IMODULE_EXEC_ONEXECUTE)
+    ->evalWith(TEST_EQUAL, &EVAL_IMODULE_EXEC_ONEXECUTE)
+    ->execute();
+  RUN_TEST<IResult*>("IMODULE_EXEC_NOMETHOD")
+    ->scenario(&SCENARIO_IMODULE_EXEC_NOMETHOD)
+    ->evalWith(TEST_EQUAL, &EVAL_IMODULE_EXEC_NOMETHOD)
     ->execute();
 };

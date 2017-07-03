@@ -8,15 +8,8 @@
 
 class IObject{
 public:
-  friend bool operator==(IObject& lhs, IObject& rhs){
-    Serial.println("call == operator");
-    return lhs.equal(&rhs);
-  };
-  virtual bool equal(IObject* obj){
-    Serial.println(this->toString().c_str());
-    Serial.println(obj->toString().c_str());
-    return this->toString() == obj->toString();
-  };
+  friend bool operator==(IObject& lhs, IObject& rhs){ return lhs.equal(&rhs); };
+  virtual bool equal(IObject* obj){ return this->toString() == obj->toString(); };
   virtual std::string toString(){ return ""; };
 };
 
@@ -134,6 +127,7 @@ class IResult: public IJSONSupport{
 private:
   std::string _module;
   std::string _method;
+protected:
   IResultData* _data;
   std::string getUniqueName(){
     return this->_module + "." + this->_method;
@@ -144,6 +138,8 @@ public:
     this->_method = method;
     this->_data = NULL;
   };
+  std::string getModule(){ return this->_module; };
+  std::string getMethod(){ return this->_method; };
   IResult* setData(IResultData* data){
     if (data != NULL) this->_data = data;
     return this;

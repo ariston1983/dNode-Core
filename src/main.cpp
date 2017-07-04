@@ -1,24 +1,33 @@
 #include "Arduino.h"
-#include "dNode-Core.hpp"
-#include "Test/test-List.hpp"
+// #include "dNode-Core.hpp"
+// #include "Test/test-List.hpp"
+
+template<bool condition, typename T = void>
+struct enableIf{ };
+template<typename T>
+struct enableIf<true, T>{
+  typedef T type;
+};
+
+template<typename T, typename U>
+struct isSame{ static const bool value = false; };
+template<typename T>
+struct isSame<T, T>{ static const bool value = true; };
+template<typename T>
+struct isInt{ static const bool value = isSame<int, T>::value; };
+
+template<typename T>
+T test(T value, typename enableIf<isInt<T>::value>::type* = 0){
+  return value;
+}
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
-  TEST_INIT();
-  RUN_NODEBASE_TEST();
+  float _x = test<float>(10);
 
-  // bool _pointer = isPointer<int>();
-  // Serial.println(_pointer);
-
-  // bool _res = 
-  //   //SCENARIO_IOBJECT_NATIVE_EQUAL()->equal(COMPARE_IOBJECT_NATIVE_EQUAL());
-  //   SCENARIO_IOBJECT_NATIVE_EQUAL() == COMPARE_IOBJECT_NATIVE_EQUAL();
-  // Serial.println(_res);
-
-  // Serial.println(SCENARIO_IOBJECT_NATIVE_EQUAL()->toString().c_str());
-  // Serial.println(COMPARE_IOBJECT_NATIVE_EQUAL()->toString().c_str());
-  // Serial.println(SCENARIO_IMODULE_EXEC_NOMETHOD().c_str());
+  // TEST_INIT();
+  // RUN_NODEBASE_TEST();
 };
 void loop(){};

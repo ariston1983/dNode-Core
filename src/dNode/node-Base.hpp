@@ -37,6 +37,8 @@ public:
   virtual bool fromJSON(std::string json){ return true; };
   virtual bool fromJSON(JsonVariant json){ return true; };
   virtual void fillJSON(JsonVariant json){ };
+  template<typename T>
+  T* as(){ return static_cast<T*>(this); }
 };
 class ExecMeta: public IJSONSupport{
 private:
@@ -75,8 +77,9 @@ public:
   };
   std::string getModule(){ return this->_module; };
   std::string getMethod(){ return this->_method; };
+  IExecArgs* getArgs(){ return this->_args; };
   template<typename T>
-  T* getArgs(){ return static_cast<T*>(this->_args); };
+  T* getArgsAs(){ return this->_args->as<T>(); };
 };
 template<typename TArgs>
 ExecMeta* execMeta(std::string json){
@@ -278,17 +281,24 @@ private:
   std::string _name;
   std::string _version;
 protected:
-  typedef IResult*(IModule::*execHandler)(std::string params);
+  typedef IResultData*(IModule::*execHandler)(IExecArgs* args);
   virtual execHandler getHandler(std::string method){ return NULL; };
   IModule(std::string name, std::string version = "1.0"){
     this->_name = name;
     this->_version = version;
   };
+  virtual IResult* makeResult(std::string method){
+    return (new IResult(this->_name, method));
+  };
 public:
-  IResult* execute(std::string method, std::string params){
-    execHandler _handler = this->getHandler(method);
-    if (_handler != NULL) return (this->*_handler)(params);
-    else return (new IResult(this->_name, method))->setData(exceptionData("MethodNotFound", "Method [" + method + "] not found"));
+  IResult* execute(ExecMeta* execInfo){
+    if (execInfo->getModule() != this->_name)
+      return this->makeResult(execInfo->getMethod())->setData(exceptionData("InvalidModule", "Invalid module [" + execInfo->getModule() + "] to execute"));
+    execHandler _handler = this->getHandler(execInfo->getMethod());
+    if (_handler != NULL)
+      return this->makeResult(execInfo->getMethod())->setData((this->*_handler)(execInfo->getArgs()));
+    else
+      return this->makeResult(execInfo->getMethod())->setData(exceptionData("MethodNotFound", "Method [" + execInfo->getMethod() + "] not found"));
   };
   virtual listMethod_Type* getMethods(){ return NULL; };
   virtual bool setup(){ return false; };

@@ -13,9 +13,16 @@ void TEST_LOGGER(std::string message, int code, std::string data){
     case 0:
     default: _print = message; break;
   };
-  Serial.print(_print.c_str());
-  if (code != 2) { Serial.print(" [HEAP: "); Serial.print(ESP.getFreeHeap()); Serial.print("]"); }
-  Serial.println();
+  if (code != 2){
+    Serial.print(_print.c_str()); Serial.print(" [HEAP: "); Serial.print(ESP.getFreeHeap()); Serial.print("]");
+    Serial.println();
+  }
+  else{
+    #ifdef __TEST_LOG_STEPS__
+    Serial.print(_print.c_str());
+    Serial.println();
+    #endif
+  }
 };
 void TEST_INIT(){
   nodeLogger::init(&TEST_LOGGER);

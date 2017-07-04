@@ -6,21 +6,84 @@
 #include <map>
 #include "node-Helper.hpp"
 
+/****************************************************************************
+ * Base interfaces
+ ****************************************************************************/
 class IObject{
 public:
   friend bool operator==(IObject& lhs, IObject& rhs){ return lhs.equal(&rhs); };
   virtual bool equal(IObject* obj){ return this->toString() == obj->toString(); };
   virtual std::string toString(){ return ""; };
 };
-
 class IJSONSupport: public IObject{
 public:
   virtual std::string toString(){ return this->toJSON(); };
   virtual bool fromJSON(std::string json){ return false; };
   virtual void fillJSON(JsonVariant json){ };
-  virtual std::string toJSON(){ return ""; };
+  virtual std::string toJSON(){
+    DynamicJsonBuffer _buffer(512);
+    JsonObject& _obj = _buffer.createObject();
+    this->fillJSON(_obj);
+    return nodeJSON::stringify(_obj);
+  };
 };
 
+/****************************************************************************
+ * Invoker interfaces
+ ****************************************************************************/
+class IExecArgs: public IJSONSupport{
+public:
+  IExecArgs(){ };
+  virtual bool fromJSON(std::string json){ return true; };
+  virtual bool fromJSON(JsonVariant json){ return true; };
+  virtual void fillJSON(JsonVariant json){ };
+};
+class ExecMeta: public IJSONSupport{
+private:
+  std::string _module;
+  std::string _method;
+  IExecArgs* _args;
+public:
+  ExecMeta(IExecArgs* args){
+    this->_args = NULL;
+    if (args != NULL) this->_args = args;
+  };
+  virtual bool fromJSON(std::string json){
+    DynamicJsonBuffer _buffer(json.length());
+    JsonVariant _var = _buffer.parseObject(json.c_str());
+    if (_var.success() && _var.is<JsonObject>()){
+      JsonObject& _obj = _var.as<JsonObject>();
+      if (!_obj.containsKey("module")) return false;
+      this->_module = (const char*)_obj["module"];
+      if (!_obj.containsKey("method")) return false;
+      this->_method = (const char*)_obj["method"];
+      if (_obj.containsKey("args") && _obj["args"].is<JsonObject>() && this->_args != NULL)
+        return this->_args->fromJSON(_obj["args"].as<JsonObject>());
+      else return true;
+    }
+    else return false;
+  };
+  virtual void fillJSON(JsonVariant json){
+    if (json.is<JsonArray>()) this->fillJSON(json.as<JsonArray>().createNestedObject());
+    else if (json.is<JsonObject>()){
+      JsonObject& _obj = json.as<JsonObject>();
+      _obj["module"] = strdup(this->_module.c_str());
+      _obj["method"] = strdup(this->_method.c_str());
+      JsonObject& _args = _obj.createNestedObject("args");
+      if (this->_args != NULL) this->_args->fillJSON(_args);
+    };
+  };
+  std::string getModule(){ return this->_module; };
+  std::string getMethod(){ return this->_method; };
+  template<typename T>
+  T* getArgs(){ return static_cast<T*>(this->_args); };
+};
+template<typename TArgs>
+ExecMeta* execMeta(std::string json){
+  ExecMeta* _meta = new ExecMeta(new TArgs());
+  if (_meta->fromJSON(json)) return _meta;
+  else return NULL;
+};
 class IResultData: public IJSONSupport{
 private:
   std::string _kind;
@@ -122,7 +185,6 @@ public:
 ExceptionData* exceptionData(std::string type, std::string message, std::string details = ""){
   return new ExceptionData(type, message, details);
 };
-
 class IResult: public IJSONSupport{
 private:
   std::string _module;
@@ -159,6 +221,9 @@ public:
   };
 };
 
+/************************************************************************************
+ * Module interfaces
+ ************************************************************************************/
 class MethodInfo: public IJSONSupport{
   typedef std::map<std::string, std::string> param_Type;
 private:

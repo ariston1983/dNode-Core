@@ -7,61 +7,63 @@
 /**************************************************************
  * RPC package base
  **************************************************************/
-class RPCRequest: public IJSONSupport{
-  typedef std::map<std::string, std::string> param_Type;
-private:
-  std::string _uid;
-  std::string _module;
-  std::string _method;
-  param_Type* _params;
-  std::string getUniqueName(){
-    return this->_module + "." + this->_method;
-  };
-public:
-  RPCRequest(std::string uid, std::string module, std::string method){
-    this->_uid = uid;
-    this->_module = module;
-    this->_method = method;
-  };
-  virtual void fillJSON(JsonVariant json){
-    if (json.is<JsonArray>()) this->fillJSON(json.as<JsonArray>().createNestedObject());
-    else if (json.is<JsonObject>()){
-      JsonObject& _obj = json.as<JsonObject>();
-      _obj["uid"] = this->_uid.c_str();
-      JsonArray& _params = _obj.createNestedArray(strdup(this->getUniqueName().c_str()));
-      for (param_Type::iterator _it = this->getParams()->begin(); _it != this->getParams()->end(); ++_it){
-        JsonObject& _param = _params.createNestedObject();
-        _param[_it->first.c_str()] = _it->second.c_str();
-      }
-    };
-  };
-  virtual std::string toJSON(){
-    DynamicJsonBuffer _buffer(512);
-    JsonObject& _obj = _buffer.createObject();
-    this->fillJSON(_obj);
-    return nodeJSON::stringify(_obj);
-  };
-  std::string getUID(){ return this->_uid; };
-  std::string getModule(){ return this->_module; };
-  std::string getMethod(){ return this->_method; };
-  param_Type* getParams(){
-    if (this->_params == NULL) this->_params = new param_Type();
-    return this->_params;
-  };
-  bool hasParam(std::string name){
-    param_Type::iterator _it = this->getParams()->find(name);
-    return _it != this->getParams()->end();
-  };
-  std::string paramType(std::string name){
-    param_Type::iterator _it = this->getParams()->find(name);
-    return (_it != this->getParams()->end()) ? _it->second : "";
-  };
-  void setParam(std::string name, std::string type){
-    param_Type::iterator _it = this->getParams()->find(name);
-    if (_it != this->getParams()->end()) _it->second = type;
-    else this->getParams()->insert(std::make_pair(name, type));
-  };
-};
+// class RPCRequest: public IJSONSupport{
+//   typedef std::map<std::string, std::string> param_Type;
+// private:
+//   std::string _uid;
+//   std::string _module;
+//   std::string _method;
+//   param_Type* _params;
+//   std::string getUniqueName(){
+//     return this->_module + "." + this->_method;
+//   };
+// private:
+//   RPCRequest(std::string uid, std::string module, std::string method){
+//     this->_uid = uid;
+//     this->_module = module;
+//     this->_method = method;
+//   };
+// public:
+//   virtual bool fromJSON(std::string json){};
+//   virtual void fillJSON(JsonVariant json){
+//     if (json.is<JsonArray>()) this->fillJSON(json.as<JsonArray>().createNestedObject());
+//     else if (json.is<JsonObject>()){
+//       JsonObject& _obj = json.as<JsonObject>();
+//       _obj["uid"] = this->_uid.c_str();
+//       JsonArray& _params = _obj.createNestedArray(strdup(this->getUniqueName().c_str()));
+//       for (param_Type::iterator _it = this->getParams()->begin(); _it != this->getParams()->end(); ++_it){
+//         JsonObject& _param = _params.createNestedObject();
+//         _param[_it->first.c_str()] = _it->second.c_str();
+//       }
+//     };
+//   };
+//   virtual std::string toJSON(){
+//     DynamicJsonBuffer _buffer(512);
+//     JsonObject& _obj = _buffer.createObject();
+//     this->fillJSON(_obj);
+//     return nodeJSON::stringify(_obj);
+//   };
+//   std::string getUID(){ return this->_uid; };
+//   std::string getModule(){ return this->_module; };
+//   std::string getMethod(){ return this->_method; };
+//   param_Type* getParams(){
+//     if (this->_params == NULL) this->_params = new param_Type();
+//     return this->_params;
+//   };
+//   bool hasParam(std::string name){
+//     param_Type::iterator _it = this->getParams()->find(name);
+//     return _it != this->getParams()->end();
+//   };
+//   std::string paramType(std::string name){
+//     param_Type::iterator _it = this->getParams()->find(name);
+//     return (_it != this->getParams()->end()) ? _it->second : "";
+//   };
+//   void setParam(std::string name, std::string type){
+//     param_Type::iterator _it = this->getParams()->find(name);
+//     if (_it != this->getParams()->end()) _it->second = type;
+//     else this->getParams()->insert(std::make_pair(name, type));
+//   };
+// };
 class RPCResponse: public IResult{
 private:
   std::string _uid;

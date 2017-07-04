@@ -70,6 +70,56 @@ std::string SCENARIO_JSONSUPPORT_FILL_ARRAY(){
   return nodeJSON::stringify(_arr);
 };
 
+std::string EXEC_JSON_SOURCE = "{\"module\":\"execTester\",\"method\":\"calculate\",\"args\":{\"x\":20,\"y\":10}}";
+class CalculateArgs: public IExecArgs{
+private:
+  int _x;
+  int _y;
+public:
+  CalculateArgs(): IExecArgs(){ };
+  virtual bool fromJSON(JsonVariant json){
+    if (json.is<JsonObject>()){
+      JsonObject& _obj = json.as<JsonObject>();
+      if (!_obj.containsKey("x")) return false;
+      this->_x = _obj["x"];
+      if (!_obj.containsKey("y")) return false;
+      this->_y = _obj["y"];
+      return true;
+    }
+    else return false;
+  };
+  virtual bool fromJSON(std::string json){
+    DynamicJsonBuffer _buffer(json.length());
+    JsonVariant _var = _buffer.parseObject(json.c_str());
+    if (_var.success() && _var.is<JsonObject>()) this->fromJSON(_var);
+    else return false;
+  };
+  virtual void fillJSON(JsonVariant json){
+    if (json.is<JsonObject>()){
+      JsonObject& _obj = json.as<JsonObject>();
+      _obj["x"] = this->_x;
+      _obj["y"] = this->_y;
+    }
+  };
+  int getX(){ return this->_x; };
+  int getY(){ return this->_y; };
+};
+ExecMeta* SCENARIO_EXECMETA_SAMPLE(){
+  return execMeta<CalculateArgs>(EXEC_JSON_SOURCE);
+};
+bool EVAL_EXECMETA_SAMPLE(TestComparer op, ExecMeta* value, ExecMeta* target){
+  if (op == TEST_EQUAL && value != NULL){
+    if (value->getModule() != "execTester") return false;
+    if (value->getMethod() != "calculate") return false;
+    CalculateArgs* _args = value->getArgs<CalculateArgs>();
+    if (_args == NULL) return false;
+    if (_args->getX() != 20) return false;
+    if (_args->getY() != 10) return false;
+    return true;
+  }
+  else return false;
+};
+
 std::string SCENARIO_RESULTDATA_NATIVE_BOOL(){
   NativeData<bool>* _data = NativeData<bool>::create("bool", false);
   return _data->toJSON();
@@ -181,6 +231,11 @@ void RUN_NODEBASE_TEST(){
   RUN_TEST<std::string>("JSONSUPPORT_FILL_ARRAY")
     ->scenario(&SCENARIO_JSONSUPPORT_FILL_ARRAY)
     ->compareTo(TEST_EQUAL, "[" + JSON_SOURCE + "]")
+    ->execute();
+
+  RUN_TEST<ExecMeta*>("EXECMETA_SAMPLE")
+    ->scenario(&SCENARIO_EXECMETA_SAMPLE)
+    ->evalWith(TEST_EQUAL, &EVAL_EXECMETA_SAMPLE)
     ->execute();
 
   RUN_TEST<std::string>("RESULTDATA_NATIVE_BOOL")

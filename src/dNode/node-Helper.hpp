@@ -46,9 +46,7 @@ struct isInteger{
 };
 template<typename T>
 struct isFloat{
-  static const bool value =
-    isSame<signed float, T>::value ||
-    isSame<unsigned float, T>::value;
+  static const bool value = isSame<float, T>::value;
 };
 template<typename T>
 struct isChars{ static const bool value = isSame<const char*, T>::value; };
@@ -71,6 +69,19 @@ bool isNative(){
     isSame<T, const char*>::value ||
     isSame<T, std::string>::value;
 };
+bool isJSONBool(JsonVariant json){ return json.is<bool>(); };
+bool isJSONInteger(JsonVariant json){
+  return json.is<signed char>() ||
+    json.is<unsigned char>() ||
+    json.is<signed short>() ||
+    json.is<unsigned short>() ||
+    json.is<signed int>() ||
+    json.is<unsigned int>() ||
+    json.is<signed long>() ||
+    json.is<unsigned long>();
+};
+bool isJSONFloat(JsonVariant json){ return json.is<float>(); };
+bool isJSONChars(JsonVariant json){ return json.is<const char*>(); };
 
 /******************************************************************************
  * JSON object modifier

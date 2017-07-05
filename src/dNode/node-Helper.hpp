@@ -26,6 +26,34 @@ template<typename T, typename U>
 struct isSame{ static const bool value = false; };
 template<typename T>
 struct isSame<T, T>{ static const bool value = true; };
+template<bool condition, typename T = void>
+struct enableIf{ };
+template<typename T>
+struct enableIf<true, T>{ typedef T type; };
+template<typename T>
+struct isBool{ static const bool value = isSame<bool, T>::value; };
+template<typename T>
+struct isInteger{
+  static const bool value =
+    isSame<signed char, T>::value ||
+    isSame<unsigned char, T>::value ||
+    isSame<signed short, T>::value ||
+    isSame<unsigned short, T>::value ||
+    isSame<signed int, T>::value ||
+    isSame<unsigned int, T>::value ||
+    isSame<signed long, T>::value ||
+    isSame<unsigned long, T>::value;
+};
+template<typename T>
+struct isFloat{
+  static const bool value =
+    isSame<signed float, T>::value ||
+    isSame<unsigned float, T>::value;
+};
+template<typename T>
+struct isChars{ static const bool value = isSame<const char*, T>::value; };
+template<typename T>
+struct isString{ static const bool value = isSame<std::string, T>::value; };
 template<typename T>
 bool isNative(){
   return

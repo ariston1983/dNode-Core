@@ -31,6 +31,57 @@ public:
 /****************************************************************************
  * Invoker interfaces
  ****************************************************************************/
+class InvokerArgument{
+  enum ArgumentType{
+    TYPE_BOOL,
+    TYPE_INTEGER,
+    TYPE_FLOATING,
+    TYPE_CHARS
+  };
+  union ArgumentValue{
+    bool asBool;
+    unsigned long asInteger;
+    float asFloat;
+    const char* asChars;
+  };
+private:
+  std::string _name;
+  ArgumentType _type;
+  ArgumentValue _value;
+public:
+  InvokerArgument(std::string name, JsonVariant json){
+  };
+  template<typename T>
+  InvokerArgument(std::string name, T value, typename enableIf<isBool<T>::value>::type* = 0){
+    this->_name = name;
+    this->_type = TYPE_BOOL;
+    this->_value.asBool = static_cast<bool>(value);
+  };
+  template<typename T>
+  InvokerArgument(std::string name, T value, typename enableIf<isInteger<T>::value>::type* = 0){
+    this->_name = name;
+    this->_type = TYPE_INTEGER;
+    this->_value.asInteger = static_cast<unsigned long>(value);
+  };
+  template<typename T>
+  InvokerArgument(std::string name, T value, typename enableIf<isFloat<T>::value>::type* = 0){
+    this->_name = name;
+    this->_type = TYPE_FLOATING;
+    this->_value.asFloat = static_cast<float>(value);
+  };
+  template<typename T>
+  InvokerArgument(std::string name, T value, typename enableIf<isChars<T>::value>::type* = 0){
+    this->_name = name;
+    this->_type = TYPE_CHARS;
+    this->_value.asChars = static_cast<const char*>(value);
+  };
+  template<typename T>
+  InvokerArgument(std::string name, T value, typename enableIf<isString<T>::value>::type* = 0){
+    this->_name = name;
+    this->_type = TYPE_CHARS;
+    this->_value.asChars = static_cast<std::string>(value).c_str();
+  };
+};
 class IExecArgs: public IJSONSupport{
 public:
   IExecArgs(){ };

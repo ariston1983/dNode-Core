@@ -50,57 +50,34 @@ private:
   ArgumentType _type;
   ArgumentValue _value;
 public:
+  InvokerArgument(){
+    this->_name = "";
+    this->_type = TYPE_INVALID;
+  };
   InvokerArgument(std::string name, JsonVariant value){
     this->_name = name;
     this->_type = TYPE_INVALID;
-    if (isJSONBool(value)){
-      this->_type = TYPE_BOOL;
-      this->_value.asBool = value.as<bool>();
-    }
-    else if (isJSONInteger(value)){
-      this->_type = TYPE_INTEGER;
-      this->_value.asInteger = value.as<unsigned long>();
-    }
-    else if (isJSONFloat(value)){
-      this->_type = TYPE_FLOATING;
-      this->_value.asFloat = value.as<float>();
-    }
-    else if (isJSONChars(value)){
-      this->_type = TYPE_CHARS;
-      this->_value.asChars = value.as<const char*>();
-    }
+    if (isJSONBool(value)) this->set<bool>(value.as<bool>());
+    else if (isJSONInteger(value)) this->set<unsigned int>(value.as<unsigned int>());
+    else if (isJSONFloat(value)) this->set<float>(value.as<float>());
+    else if (isJSONChars(value)) this->set<const char*>(value.as<const char*>());
   };
   template<typename T>
-  InvokerArgument(std::string name, T value, typename enableIf<isBool<T>::value>::type* = 0){
+  InvokerArgument(std::string name, T value, typename enableIf<isBool<T>::value ||
+    isInteger<T>::value ||
+    isFloat<T>::value ||
+    isChars<T>::value ||
+    isString<T>::value>::type* = 0){
     this->_name = name;
-    this->_type = TYPE_BOOL;
-    this->_value.asBool = static_cast<bool>(value);
+    this->_type = TYPE_INVALID;
+    this->set<T>(value);
   };
-  template<typename T>
-  InvokerArgument(std::string name, T value, typename enableIf<isInteger<T>::value>::type* = 0){
-    this->_name = name;
-    this->_type = TYPE_INTEGER;
-    this->_value.asInteger = static_cast<unsigned long>(value);
+  static InvokerArgument& invalid(){
+    static InvokerArgument instance;
+    return instance;
   };
-  template<typename T>
-  InvokerArgument(std::string name, T value, typename enableIf<isFloat<T>::value>::type* = 0){
-    this->_name = name;
-    this->_type = TYPE_FLOATING;
-    this->_value.asFloat = static_cast<float>(value);
-  };
-  template<typename T>
-  InvokerArgument(std::string name, T value, typename enableIf<isChars<T>::value>::type* = 0){
-    this->_name = name;
-    this->_type = TYPE_CHARS;
-    this->_value.asChars = static_cast<const char*>(value);
-  };
-  template<typename T>
-  InvokerArgument(std::string name, T value, typename enableIf<isString<T>::value>::type* = 0){
-    this->_name = name;
-    this->_type = TYPE_CHARS;
-    this->_value.asChars = static_cast<std::string>(value).c_str();
-  };
-  bool invalid(){ return this->_type == TYPE_INVALID; };
+  std::string getName(){ return this->_name; };
+  bool valid(){ return !this->_name.empty() && this->_name != "" && this->_type != TYPE_INVALID; };
   template<typename T>
   T as(typename enableIf<isBool<T>::value>::type* = 0){
     if (this->_type == TYPE_BOOL) return T(this->_value.asBool);
@@ -127,27 +104,121 @@ public:
     else return "";
   };
   template<typename T>
+  bool set(T value, typename enableIf<isBool<T>::value>::type* = 0){
+    if (this->_type == TYPE_INVALID || this->_type == TYPE_BOOL){
+      this->_type = TYPE_BOOL;
+      this->_value.asBool = static_cast<bool>(value);
+      return true;
+    }
+    else return false;
+  };
+  template<typename T>
+  bool set(T value, typename enableIf<isInteger<T>::value>::type* = 0){
+    if (this->_type == TYPE_INVALID || this->_type == TYPE_INTEGER){
+      this->_type = TYPE_INTEGER;
+      this->_value.asInteger = static_cast<unsigned int>(value);
+      return true;
+    }
+    else return false;
+  };
+  template<typename T>
+  bool set(T value, typename enableIf<isFloat<T>::value>::type* = 0){
+    if (this->_type == TYPE_INVALID || this->_type == TYPE_FLOATING){
+      this->_type = TYPE_FLOATING;
+      this->_value.asFloat = static_cast<float>(value);
+      return true;
+    }
+    else return false;
+  };
+  template<typename T>
+  bool set(T value, typename enableIf<isChars<T>::value>::type* = 0){
+    if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
+      this->_type = TYPE_CHARS;
+      this->_value.asChars = static_cast<const char*>(value);
+      return true;
+    }
+    else return false;
+  };
+  template<typename T>
+  bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
+    if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
+      this->_type = TYPE_CHARS;
+      this->_value.asChars = static_cast<std::string>(value).c_str();
+      return true;
+    }
+    else return false;
+  };
+  template<typename T>
+  typename enableIf<isBool<T>::value ||
+    isInteger<T>::value ||
+    isFloat<T>::value ||
+    isString<T>::value, InvokerArgument&>::type operator=(const T& value){
+    this->set<T>(value);
+    return *this;
+  };
+  template<typename T>
+  typename enableIf<isChars<T>::value, InvokerArgument&>::type operator=(const T* value){
+    this->set<T>(value);
+    return *this;
+  };
+  template<typename T>
   operator T(){
     return this->as<T>();
   };
 };
 class Invoker{
-  typedef std::map<std::string, InvokerArgument> args_Type;
+  typedef std::map<std::string, InvokerArgument*> args_Type;
 private:
+  std::string _module;
+  std::string _method;
   args_Type* _args;
   args_Type* getArgs(){
     if (this->_args == NULL) this->_args = new args_Type();
     return this->_args;
   };
 public:
-  template<typename T>
-  Invoker* addArgument(std::string name, T value, typename enableIf<isBool<T>::value ||
-    isInteger<T>::value ||
-    isFloat<T>::value ||
-    isChars<T>::value ||
-    isString<T>::value>::type* = 0){
-    
+  Invoker(std::string module, std::string method){
+    this->_module = module;
+    this->_method = method;
+    this->_args = NULL;
   };
+  ~Invoker(){
+    for (auto _it = this->getArgs()->begin(); _it != this->getArgs()->end(); ++_it){
+      delete _it->second;
+      this->getArgs()->erase(_it);
+    }
+    delete this->_args;
+  };
+  static Invoker& invalid(){
+    static Invoker instance("", "");
+    return instance;
+  };
+  std::string getModule(){ return this->_module; };
+  std::string getMethod(){ return this->_method; };
+  std::vector<std::string>* getParamNames(){
+    std::vector<std::string>* _names = new std::vector<std::string>();
+    for (args_Type::iterator _it = this->getArgs()->begin(); _it != this->getArgs()->end(); ++_it)
+      _names->push_back(_it->first);
+    return _names;
+  };
+  template<typename T>
+  Invoker& add(std::string name, T value){
+    args_Type::iterator _it = this->getArgs()->find(name);
+    if (_it != this->getArgs()->end()){
+      if (_it->second->set<T>(value)) return *this;
+      else return Invoker::invalid();
+    }
+    this->getArgs()->insert(std::make_pair(name, new InvokerArgument(name, value)));
+    return *this;
+  };
+  int count(){ return this->getArgs()->size(); };
+  bool has(std::string name){ return this->getArgs()->find(name) != this->getArgs()->end(); };
+  InvokerArgument& get(std::string name){
+    args_Type::iterator _it = this->getArgs()->find(name);
+    if (_it != this->getArgs()->end()) return *_it->second;
+    else InvokerArgument::invalid();
+  };
+  InvokerArgument& operator[](std::string name){ return this->get(name); };
 };
 class IExecArgs: public IJSONSupport{
 public:

@@ -21,15 +21,46 @@
 //   return value;
 // }
 
+// union TestUnion{
+//   int asInt;
+//   float asFloat;
+// };
+
+typedef std::map<std::string, InvokerArgument> argss_Type;
+argss_Type* _args;
+argss_Type* getArgs(){
+  if (_args == NULL) _args = new argss_Type();
+  return _args;
+};
+
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
   // float _x = test<float>(10);
 
-  InvokerArgument _arg("test", (int)100);
-  int _x = (int)_arg;
-  Serial.println(_x);
+  // InvokerArgument _arg("test", (int)100);
+  // Serial.println((int)_arg);
+  // _arg = (int)200;
+  // Serial.println((int)_arg);
+
+  // std::map<std::string, InvokerArgument>* _args = new std::map<std::string, InvokerArgument>();
+  // Serial.println(getArgs()->empty());
+
+  Invoker* _iv = new Invoker("modTest", "hello");
+  _iv->add("name", "John Doe").add("age", 30);
+  // std::string _name = _iv["name"];
+  // int _age = _iv["age"];
+  // Serial.println(_name.c_str());
+  // Serial.println(_age);
+  for (auto _it: *_iv->getParamNames())
+    Serial.println(_it.c_str());
+  // TestUnion _a;
+  // _a.asInt = 100;
+  // Serial.println(_a.asInt);
+  // _a.asFloat = 1.5;
+  // Serial.println(_a.asFloat);
+  // Serial.println(_a.asInt);
 
   // TEST_INIT();
   // RUN_NODEBASE_TEST();

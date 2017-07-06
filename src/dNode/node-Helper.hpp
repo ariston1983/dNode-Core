@@ -21,7 +21,21 @@ struct pointer_template{ static const bool value = false; };
 template<typename T>
 struct pointer_template<T*>{ static const bool value = true; };
 template<typename T>
-bool isPointer(){ return pointer_template<T>::value; }
+struct isPointer{ static const bool value = pointer_template<T>::value; };
+template<typename TBase, typename TDerived>
+struct pre_based_of{
+protected:
+  typedef char Yes[1];
+  typedef char No[1];
+  static Yes &probe(const TBase*);
+  static No &probe(...);
+public:
+  enum{
+    value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
+  };
+};
+template<typename TBase, typename TDerived>
+struct isBaseOf: pre_based_of<TBase, TDerived>{ };
 template<typename T, typename U>
 struct isSame{ static const bool value = false; };
 template<typename T>
@@ -35,6 +49,7 @@ struct isBool{ static const bool value = isSame<bool, T>::value; };
 template<typename T>
 struct isInteger{
   static const bool value =
+    isSame<bool, T>::value ||
     isSame<signed char, T>::value ||
     isSame<unsigned char, T>::value ||
     isSame<signed short, T>::value ||
@@ -53,22 +68,30 @@ struct isChars{ static const bool value = isSame<const char*, T>::value; };
 template<typename T>
 struct isString{ static const bool value = isSame<std::string, T>::value; };
 template<typename T>
-bool isNative(){
-  return
-    isSame<T, bool>::value ||
-    isSame<T, char>::value ||
-    isSame<T, unsigned char>::value ||
-    isSame<T, byte>::value ||
-    isSame<T, int16_t>::value ||
-    isSame<T, int32_t>::value ||
-    isSame<T, int64_t>::value ||
-    isSame<T, uint16_t>::value ||
-    isSame<T, uint32_t>::value ||
-    isSame<T, uint64_t>::value ||
-    isSame<T, float>::value ||
-    isSame<T, const char*>::value ||
-    isSame<T, std::string>::value;
+struct isNative{
+  static const bool value = isBool<T>::value ||
+    isInteger<T>::value ||
+    isFloat<T>::value ||
+    isChars<T>::value ||
+    isString<T>::value;
 };
+// template<typename T>
+// bool isNative(){
+//   return
+//     isSame<T, bool>::value ||
+//     isSame<T, char>::value ||
+//     isSame<T, unsigned char>::value ||
+//     isSame<T, byte>::value ||
+//     isSame<T, int16_t>::value ||
+//     isSame<T, int32_t>::value ||
+//     isSame<T, int64_t>::value ||
+//     isSame<T, uint16_t>::value ||
+//     isSame<T, uint32_t>::value ||
+//     isSame<T, uint64_t>::value ||
+//     isSame<T, float>::value ||
+//     isSame<T, const char*>::value ||
+//     isSame<T, std::string>::value;
+// };
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };
 bool isJSONInteger(JsonVariant json){
   return json.is<signed char>() ||

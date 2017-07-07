@@ -22,7 +22,27 @@ template<typename T>
 struct pointer_template<T*>{ static const bool value = true; };
 template<typename T>
 struct isPointer{ static const bool value = pointer_template<T>::value; };
-template<typename TBase, typename TDerived>
+
+template<typename T>
+struct reference_template{ static const bool value = false; };
+template<typename T>
+struct reference_template<T&>{ static const bool value = true; };
+template<typename T>
+struct isReference{ static const bool value = reference_template<T>::value; };
+
+template<typename T>
+struct clearConst{ typedef T type; };
+template<typename T>
+struct clearConst<const T>{ typedef T type; };
+template<typename T>
+struct clearReference{ typedef T type; };
+template<typename T>
+struct clearReference<T&>{ typedef T type; };
+template<typename T>
+struct clearPointer{ typedef T type; };
+template<typename T>
+struct clearPointer<T*>{ typedef T type; };
+template<class TBase, class TDerived>
 struct pre_based_of{
 protected:
   typedef char Yes[1];
@@ -34,7 +54,7 @@ public:
     value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
   };
 };
-template<typename TBase, typename TDerived>
+template<class TBase, class TDerived>
 struct isBaseOf: pre_based_of<TBase, TDerived>{ };
 template<typename T, typename U>
 struct isSame{ static const bool value = false; };

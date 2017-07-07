@@ -11,24 +11,44 @@
  ****************************************************************************/
 namespace dNode{
   class Object{
+  private:
+    bool _empty;
   public:
+    Object(){ this->_empty = true; };
+    static Object* empty(){ return new Object(); };
     friend bool operator==(Object& lhs, Object& rhs){ return lhs.equal(&rhs); };
     virtual bool equal(Object* obj){ return this->toString() == obj->toString(); };
     virtual std::string toString(){ return ""; };
   };
 
-  // class IJSONSupport: public Object{
-  // public:
-  //   virtual std::string toString(){ return this->toJSON(); };
-  //   virtual bool fromJSON(std::string json){ return false; };
-  //   virtual void fillJSON(JsonVariant json){ };
-  //   virtual std::string toJSON(){
-  //     DynamicJsonBuffer _buffer(512);
-  //     JsonObject& _obj = _buffer.createObject();
-  //     this->fillJSON(_obj);
-  //     return nodeJSON::stringify(_obj);
-  //   };
-  // };
+  class JSONObject: public Object{
+  public:
+    static std::string stringify(JsonVariant json){
+      int _len = json.measureLength()+1;
+      char _store[_len];
+      json.printTo(_store, _len);
+      return std::string(_store);
+    };
+    virtual bool fromJSON(JsonVariant json){ return false; };
+    virtual bool fromJSON(std::string str){
+      DynamicJsonBuffer _buffer(str.length());
+      JsonVariant _obj = _buffer.parseObject(str.c_str());
+      if (_obj.success()) return this->fromJSON(_obj);
+      else return false;
+    };
+    virtual void fillJSON(JsonVariant json){ };
+    virtual std::string toJSON(){
+      DynamicJsonBuffer _buffer(512);
+      JsonObject& _obj = _buffer.createObject();
+      this->fillJSON(_obj);
+      return stringify(_obj);
+    };
+  };
+
+  template<typename T>
+  using foreach_List = void(*)(Object*, T);
+  template<typename TKey, typename TValue>
+  using foreach_Dictionary = void(*)(Object*, TKey, TValue);
 
   template<typename T>
   class List: public Object{
@@ -42,6 +62,9 @@ namespace dNode{
   public:
     List(): Object(){
       this->_list = NULL;
+    };
+    ~List(){
+      this->clear();
     };
     int count(){ return this->getList()->count(); };
     bool add(T value){
@@ -78,7 +101,7 @@ namespace dNode{
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
           if (_curr == index){
-            delete_if_pointer(_it->first);
+            if (isPointer<T>::value) delete_if_pointer(*_it);
             this->getList()->erase(_it);
             return true;
           }
@@ -90,23 +113,83 @@ namespace dNode{
     bool clear(){
       if (isPointer<T>::value)
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
-          delete_if_pointer(_it->first);
+          delete_if_pointer(*_it);
       this->getList()->clear();
+    };
+    void forEach(foreach_List<T> action){
+      for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
+        action(this, *_it);
     };
     T& operator[](int index){
       if (index >= 0 && index < this->count()){
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
-          if (_curr == index) return _it->first;
+          if (_curr == index) return _it;
           _curr++;
         }
       }
       return T();
     };
   };
+  
+  template<typename TKey, typename TValue>
+  class Dictionary: public Object{
+    typedef std::map<TKey, TValue> dict_Type;
+  private:
+    dict_Type* _map;
+    dict_Type* getMap(){
+      if (this->_map == NULL) this->_map = new dict_Type();
+      return this->_map;
+    };
+  public:
+    Dictionary(): Object(){
+      this->_map = NULL;
+    };
+    ~Dictionary(){
+      this->clear();
+    };
+    int count(){ return this->getMap()->count(); };
+    bool has(TKey key){
+      typename dict_Type::iterator _it = this->getMap()->find(key);
+      return (_it != this->getMap()->end());
+    };
+    bool add(TKey key, TValue value){
+      typename dict_Type::iterator _it = this->getMap()->find(key);
+      if (_it == this->getMap()->end()) this->getMap()->insert(std::make_pair(key, value));
+      else _it->second = value;
+      return true;
+    };
+    bool remove(TKey key){
+      typename dict_Type::iterator _it = this->getMap()->find(key);
+      if (_it != this->getMap()->end()){
+        delete_if_pointer(_it->first);
+        delete_if_pointer(_it->second);
+        this->getMap()->erase(_it);
+        return true;
+      }
+      else return false;
+    };
+    void clear(){
+      for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it){
+        delete_if_pointer(_it->first);
+        delete_if_pointer(_it->second);
+        this->getMap()->erase(_it);
+      }
+    };
+    void forEach(foreach_Dictionary<TKey, TValue> action){
+      for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it)
+        action(this, _it->first, _it->second);
+    };
+    TValue& operator[](TKey key){
+      typename dict_Type::iterator _it = this->getMap()->find(key);
+      return (_it != this->getMap()->end()) ? _it->second : TValue();
+    };
+  };
+  
   class Variant : public Object{
     enum Type{
       TYPE_INVALID,
+      TYPE_BOOL,
       TYPE_INTEGER,
       TYPE_FLOAT,
       TYPE_CHARS,
@@ -122,6 +205,7 @@ namespace dNode{
     Type _type;
     Value _value;
   protected:
+    Type getType(){ return this->_type; };
   public:
     template<typename T>
     Variant(T value, typename enableIf<isNative<T>::value>::type* = 0){
@@ -132,18 +216,27 @@ namespace dNode{
       this->_type = TYPE_INVALID;
       this->set(value);
     };
+    ~Variant(){
+      if (this->_type == TYPE_OBJECT) delete_if_pointer(this->_value.asObject);
+    };
+
     template<typename T>
     bool set(T value, typename enableIf<isInteger<T>::Value>::type* = 0){
-      if (this->_type == TYPE_INVALID || this->_type == TYPE_INTEGER){
+      if (this->_type == TYPE_INVALID){
         this->_value.asInteger = static_cast<unsigned long>(value);
+        if (isBool<T>::value) this->_type = TYPE_BOOL;
+        else this->_type = TYPE_INTEGER;
         return true;
       }
+      else if ((this->_type == TYPE_BOOL && isBool<T>::value) || this->_type == TYPE_INTEGER)
+        this->_value.asInteger = static_cast<unsigned long>(value);
       else return false;
     };
     template<typename T>
     bool set(T value, typename enableIf<isFloat<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_FLOAT){
         this->_value.asFloat = static_cast<float>(value);
+        this->_type = TYPE_FLOAT;
         return true;
       }
       else return false;
@@ -152,6 +245,7 @@ namespace dNode{
     bool set(T value, typename enableIf<isChars<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<const char*>(value);
+        this->_type = TYPE_CHARS;
         return true;
       }
       else return false;
@@ -160,6 +254,7 @@ namespace dNode{
     bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
       if (this->_type = TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<std::string>(value).c_str();
+        this->_type = TYPE_CHARS;
         return true;
       }
       else return false;
@@ -167,15 +262,82 @@ namespace dNode{
     bool set(dNode::Object* value){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_OBJECT){
         this->_value.asObject = value;
+        this->_type = TYPE_OBJECT;
         return true;
       }
       else return false;
     };
+    
+    template<typename T>
+    typename enableIf<isBool<T>::value, bool>::type as(){
+      if (this->_type == TYPE_BOOL) return static_cast<bool>(this->_value.asInteger);
+      else return T();
+    };
+    template<typename T>
+    typename enableIf<isInteger<T>::value, T>::type as(){
+      if (this->_type == TYPE_INTEGER) return static_cast<T>(this->_value.asInteger);
+      else return T();
+    };
+    template<typename T>
+    typename enableIf<isChars<T>::value, const char*>::type as(){
+      if (this->_type == TYPE_CHARS) return this->_value.asChars;
+      else return "";
+    };
+    template<typename T>
+    typename enableIf<isString<T>::value, std::string>::type as(){
+      if (this->_type == TYPE_CHARS) return std::string(this->_value.asChars);
+      else return "";
+    };
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Object, typename clearPointer<T>::type>::value && isPointer<T>::value, T>::type as(){
+      Serial.println("pointer casting");
+      if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
+      else return NULL;
+    };
+
+    template<typename T>
+    operator T(){ Serial.println("converison"); return this->as<T>(); };
   };
+  template<typename T>
+  Variant& var(T value){ return *new Variant(value); };
+  Variant& var(dNode::Object* value){ return *new Variant(value); };
 };
 /****************************************************************************
  * Invoker interfaces
  ****************************************************************************/
+namespace dNode{
+  namespace Module{
+    class InvokeArgument: public Variant, public JSONObject{
+    private:
+      std::string _name;
+    public:
+      template<typename T>
+      InvokeArgument(std::string name, T value, typename enableIf<isNative<T>::value>::type* = 0)
+      : Variant(value){ };
+      InvokeArgument(std::string name, JSONObject* value): Variant(value){ };
+      virtual bool fromJSON(JsonVariant json){};
+      virtual void fillJSON(JsonVariant json){
+      };
+    };
+    
+    template<typename T>
+    InvokeArgument* argument(T value){ return new InvokeArgument(value); };
+    class Invoker: public Dictionary<std::string, InvokeArgument*>{
+    private:
+      std::string _module;
+      std::string _method;
+    public:
+      Invoker(std::string module, std::string method)
+      : Dictionary(){
+        this->_module = module;
+        this->_method = method;
+      };
+      bool valid(){
+        return !this->_module.empty() && this->_module != "" && !this->_method.empty() && this->_method != "";
+      };
+    };
+  };
+};
 // class InvokerArgument{
 //   enum ArgumentType{
 //     TYPE_INVALID,

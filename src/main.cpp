@@ -49,27 +49,10 @@
 //   Serial.println(_obj->toJSON().c_str());
 // };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> c3d7ed21ed5a176ac2d9b1cf7cde0ab6348e6a39
 class TestObject: public dNode::Object{
 private:
   std::string _name;
 public:
-<<<<<<< HEAD
-  TestObject(std::string name){ this->_name = name; };
-  virtual std::string toString(){ return this->_name; };
-};
-class MyList: public dNode::List<dNode::Variant*>{ };
-void printListItem(dNode::Object* context, dNode::Variant* value){
-  dNode::Object* _obj = (dNode::Object)value;
-  dNode::Object* _obj1 = value->as<dNode::Object>();
-  Serial.println((unsigned)std::addressof(_obj));
-  Serial.println(_obj->toString().c_str());
-  Serial.println((unsigned)std::addressof(_obj1));
-  Serial.println(_obj1->toString().c_str());
-=======
   TestObject(std::string name): Object(){ this->_name = name; };
   virtual std::string toString(){ return this->_name; };
 };
@@ -95,21 +78,12 @@ template<typename T>
 bool printReference(T& value, typename enableIf<isBaseOf<dNode::Object,
   typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type* = 0){
   Serial.println(value.toString().c_str());
->>>>>>> c3d7ed21ed5a176ac2d9b1cf7cde0ab6348e6a39
 };
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
-<<<<<<< HEAD
-
-  MyList* _list = new MyList();
-  _list->add(new dNode::Variant(new TestObject("Mike")));
-  _list->add(new dNode::Variant(new TestObject("Sarah")));
-  _list->add(new dNode::Variant(new TestObject("Rachel")));
-  _list->forEach(&printListItem);
-=======
   // TestObject _t("Mike");
   // checkReference<TestObject&>();
   // printReference<TestObject&>(_t);
@@ -134,7 +108,6 @@ void setup(){
   // _dict->add("two", new TestObject("Sarah"));
   // _dict->add("three", new TestObject("Rachel"));
   // _dict->forEach(&foreachDict);
->>>>>>> c3d7ed21ed5a176ac2d9b1cf7cde0ab6348e6a39
 
   // TestObject* _obj = new TestObject();
   // printJSON(_obj);

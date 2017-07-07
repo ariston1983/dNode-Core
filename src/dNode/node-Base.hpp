@@ -29,7 +29,8 @@ namespace dNode{
   //     return nodeJSON::stringify(_obj);
   //   };
   // };
-
+  template<typename T>
+  using foreach_Delegate = void(*)(Object* context, T value);
   template<typename T>
   class List: public Object{
     typedef std::vector<T> list_Type;
@@ -78,7 +79,7 @@ namespace dNode{
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
           if (_curr == index){
-            delete_if_pointer(_it->first);
+            delete_if_pointer(*_it);
             this->getList()->erase(_it);
             return true;
           }
@@ -93,11 +94,15 @@ namespace dNode{
           delete_if_pointer(_it->first);
       this->getList()->clear();
     };
+    void forEach(foreach_Delegate<T> func){
+      for(typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
+        func(this, *_it);
+    };
     T& operator[](int index){
       if (index >= 0 && index < this->count()){
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
-          if (_curr == index) return _it->first;
+          if (_curr == index) return *_it;
           _curr++;
         }
       }
@@ -107,6 +112,7 @@ namespace dNode{
   class Variant : public Object{
     enum Type{
       TYPE_INVALID,
+      TYPE_BOOL,
       TYPE_INTEGER,
       TYPE_FLOAT,
       TYPE_CHARS,
@@ -134,7 +140,13 @@ namespace dNode{
     };
     template<typename T>
     bool set(T value, typename enableIf<isInteger<T>::Value>::type* = 0){
-      if (this->_type == TYPE_INVALID || this->_type == TYPE_INTEGER){
+      if (this->_type == TYPE_INVALID){
+        this->_value.asInteger = static_cast<unsigned long>(value);
+        if (isBool<T>::value) this->_type == TYPE_BOOL;
+        else this->_type = TYPE_INTEGER;
+        return true;
+      }
+      else if((this->_type == TYPE_BOOL && isBool<T>::value) || this->_type == TYPE_INTEGER){
         this->_value.asInteger = static_cast<unsigned long>(value);
         return true;
       }
@@ -144,6 +156,7 @@ namespace dNode{
     bool set(T value, typename enableIf<isFloat<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_FLOAT){
         this->_value.asFloat = static_cast<float>(value);
+        this->_type = TYPE_FLOAT;
         return true;
       }
       else return false;
@@ -152,6 +165,7 @@ namespace dNode{
     bool set(T value, typename enableIf<isChars<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<const char*>(value);
+        this->_type = TYPE_CHARS;
         return true;
       }
       else return false;
@@ -160,6 +174,7 @@ namespace dNode{
     bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
       if (this->_type = TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<std::string>(value).c_str();
+        this->_type = TYPE_CHARS;
         return true;
       }
       else return false;
@@ -167,9 +182,45 @@ namespace dNode{
     bool set(dNode::Object* value){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_OBJECT){
         this->_value.asObject = value;
+        this->_type = TYPE_OBJECT;
         return true;
       }
       else return false;
+    };
+    template<typename T>
+    T as(typename enableIf<isInteger<T>::value>::type* = 0){
+      if (this->_type == TYPE_INTEGER) return static_cast<T>(this->_value.asInteger);
+      else return T();
+    };
+    template<typename T>
+    T as(typename enableIf<isFloat<T>::value>::type* = 0){
+      if (this->_type == TYPE_FLOAT) return static_cast<T>(this->_value.asFloat);
+      else return T();
+    };
+    template<typename T>
+    T as(typename enableIf<isChars<T>::value>::type* = 0){
+      if (this->_type == TYPE_CHARS) return static_cast<T>(this->_value.asChars);
+      else return T();
+    };
+    template<typename T>
+    T as(typename enableIf<isString<T>::value>::type* = 0){
+      if (this->_type == TYPE_CHARS) return std::string(this->_value.asChars);
+      else return T();
+    };
+    template<typename T>
+    T* as(typename enableIf<isBaseOf<dNode::Object, T>::value>::type* = 0){
+      if (this->_type == TYPE_OBJECT && static_cast<T*>(this->_value.asObject))
+        return static_cast<T*>(this->_value.asObject);
+      else return NULL;
+    };
+    template<typename T>
+    operator typename enableIf<isNative<T>::value>::type (){ return this->as<T>(); };
+    template<typename T>
+    operator typename enableIf<isBaseOf<dNode::Object, T>::value, T*>::type (){ return this->as<T>(); };
+    template<typename T>
+    Variant& operator=(T value){
+      this->set<T>(value);
+      return *this;
     };
   };
 };

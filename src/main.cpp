@@ -49,14 +49,33 @@
 //   Serial.println(_obj->toJSON().c_str());
 // };
 
-class MyList: public dNode::List<dNode::Object*>{ };
+class TestObject: public dNode::Object{
+private:
+  std::string _name;
+public:
+  TestObject(std::string name){ this->_name = name; };
+  virtual std::string toString(){ return this->_name; };
+};
+class MyList: public dNode::List<dNode::Variant*>{ };
+void printListItem(dNode::Object* context, dNode::Variant* value){
+  dNode::Object* _obj = (dNode::Object)value;
+  dNode::Object* _obj1 = value->as<dNode::Object>();
+  Serial.println((unsigned)std::addressof(_obj));
+  Serial.println(_obj->toString().c_str());
+  Serial.println((unsigned)std::addressof(_obj1));
+  Serial.println(_obj1->toString().c_str());
+};
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
+
   MyList* _list = new MyList();
-  dNode::Variant _var(_list);
+  _list->add(new dNode::Variant(new TestObject("Mike")));
+  _list->add(new dNode::Variant(new TestObject("Sarah")));
+  _list->add(new dNode::Variant(new TestObject("Rachel")));
+  _list->forEach(&printListItem);
 
   // TestObject* _obj = new TestObject();
   // printJSON(_obj);

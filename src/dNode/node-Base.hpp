@@ -254,7 +254,7 @@ namespace dNode{
     };
     template<typename T>
     bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
-      if (this->_type = TYPE_INVALID || this->_type == TYPE_CHARS){
+      if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<std::string>(value).c_str();
         this->_type = TYPE_CHARS;
         return true;
@@ -268,6 +268,21 @@ namespace dNode{
         return true;
       }
       else return false;
+    };
+
+    template<typename T>
+    typename enableIf<isBool<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_BOOL; };
+    template<typename T>
+    typename enableIf<isInteger<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_INTEGER; };
+    template<typename T>
+    typename enableIf<isFloat<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_FLOAT; };
+    template<typename T>
+    typename enableIf<isChars<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_CHARS; };
+    template<typename T>
+    typename enableIf<isString<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_CHARS; };
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, bool>::type is(){
+      return this->valid() && this->_type == TYPE_OBJECT && dynamic_cast<typename clearClass<T>::type*>(this->_value.asObject);
     };
     
     template<typename T>
@@ -290,8 +305,8 @@ namespace dNode{
       if (this->_type == TYPE_CHARS) return std::string(this->_value.asChars);
       else return "";
     };
-    template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, typename clearPointer<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* as(){
+    template<class T>
+    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* as(){
       Serial.println("pointer casting");
       if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
       else return NULL;
@@ -309,41 +324,85 @@ namespace dNode{
  ****************************************************************************/
 namespace dNode{
   namespace Module{
-    class JSONArgument: public Variant
-    , public JSONObject{
+    class ObjectInfo: public dNode::Dictionary<std::string, dNode::Variant>{};
+    class ArrayInfo: public dNode::List<dNode::Variant>{};
+    class ExecuteInfo : public ObjectInfo{
+    private:
+      std::string _module;
+      std::string _method;
     public:
-      JSONArgument(JsonVariant json)
-      : Variant(){
-        if (!this->fromJSON(json)) this->_type = TYPE_INVALID;
-      };
-      bool fromJSON(JsonVariant json){
-        if (json.success()){
-          if (json.is<JsonArray>()){
-            dNode::List<JSONArgument*>* _arr = new dNode::List<JSONArgument*>();
-            for (auto _el: json.as<JsonArray>()){
-              JSONArgument* _arg = new JSONArgument(_el);
-              if (_arg->valid()) _arr->add(_arg);
-              else return false;
-            }
-            this->set(_arr);
-          }
-          else if (json.is<JsonObject>()){
-          }
-          else if (json.is<bool>()) this->set(json.as<bool>());
-          else if (json.is<unsigned long>()) this->set(json.as<unsigned long>());
-          else if (json.is<float>()) this->set(json.as<float>());
-          else if (json.is<const char*>()) this->set(json.as<const char*>());
-          else return false;
-        }
-        else return false;
-      };
-      void fillJSON(JsonVariant json){};
+      ExecuteInfo(std::string module, std::string method): ObjectInfo(){};
+      std::string getModule(){ return this->_module; };
+      std::string getMethod(){ return this->_method; };
     };
-    class JSONParam: public JSONObject{};
-    class JSONInvoker: public Dictionary<std::string, JSONParam>
-    , public JSONObject{
+    class ResultInfo: public ObjectInfo{
+    private:
+      ExecuteInfo* _execInfo;
+    };
+    class ExceptionInfo: public ResultInfo{};
 
+    class ModuleBase: public Object{
+    private:
+      std::string _moduleName;
+      std::string _moduleVersion;
+      ResultInfo* noHandler(ExecuteInfo* info){ return NULL; };
+      ResultInfo* moduleInfoHandler(ExecuteInfo* info = 0){
+        ObjectInfo* _info = new ObjectInfo();
+        _info->add("name", this->getModuleName());
+        _info->add("version", this->getModuleVersion());
+        ResultInfo* _res = new ResultInfo();
+        _res->add("module", _info);
+        return _res;
+      };
+    protected:
+      typedef ResultInfo*(ModuleBase::*execHandler)(ExecuteInfo*);
+      virtual execHandler getExecHandler(std::string method){ return &ModuleBase::noHandler; };
+    public:
+      ResultInfo* execute(ExecuteInfo* info){
+        if (info != NULL && info->getModule() == this->getModuleName()){
+          if (info->getMethod() == "moduleInfo") return moduleInfoHandler();
+          else (this->*getExecHandler(info->getMethod()))(info);
+        }
+      };
+      std::string getModuleName(){ return this->_moduleName; };
+      std::string getModuleVersion(){ return this->_moduleVersion; };
     };
+
+    // class JSONArgument: public Variant
+    // , public JSONObject{
+    // public:
+    //   JSONArgument(JsonVariant json)
+    //   : Variant(){
+    //     if (!this->fromJSON(json)) this->_type = TYPE_INVALID;
+    //   };
+    //   bool fromJSON(JsonVariant json){
+    //     if (json.success()){
+    //       if (json.is<JsonArray>()){
+    //         dNode::List<JSONArgument*>* _arr = new dNode::List<JSONArgument*>();
+    //         for (auto _el: json.as<JsonArray>()){
+    //           JSONArgument* _arg = new JSONArgument(_el);
+    //           if (_arg->valid()) _arr->add(_arg);
+    //           else return false;
+    //         }
+    //         this->set(_arr);
+    //       }
+    //       else if (json.is<JsonObject>()){
+    //       }
+    //       else if (json.is<bool>()) this->set(json.as<bool>());
+    //       else if (json.is<unsigned long>()) this->set(json.as<unsigned long>());
+    //       else if (json.is<float>()) this->set(json.as<float>());
+    //       else if (json.is<const char*>()) this->set(json.as<const char*>());
+    //       else return false;
+    //     }
+    //     else return false;
+    //   };
+    //   void fillJSON(JsonVariant json){};
+    // };
+    // class JSONParam: public JSONObject{};
+    // class JSONInvoker: public Dictionary<std::string, JSONParam>
+    // , public JSONObject{
+
+    // };
   };
 };
 // class InvokerArgument{
@@ -361,16 +420,16 @@ namespace dNode{
 //     const char* asChars;
 //   };
 // private:
-//   std::string _name;
+//   std::string _moduleName;
 //   ArgumentType _type;
 //   ArgumentValue _value;
 // public:
 //   InvokerArgument(){
-//     this->_name = "";
+//     this->_moduleName = "";
 //     this->_type = TYPE_INVALID;
 //   };
 //   InvokerArgument(std::string name, JsonVariant value){
-//     this->_name = name;
+//     this->_moduleName = name;
 //     this->_type = TYPE_INVALID;
 //     if (isJSONBool(value)) this->set<bool>(value.as<bool>());
 //     else if (isJSONInteger(value)) this->set<unsigned int>(value.as<unsigned int>());
@@ -383,7 +442,7 @@ namespace dNode{
 //     isFloat<T>::value ||
 //     isChars<T>::value ||
 //     isString<T>::value>::type* = 0){
-//     this->_name = name;
+//     this->_moduleName = name;
 //     this->_type = TYPE_INVALID;
 //     this->set<T>(value);
 //   };
@@ -391,8 +450,8 @@ namespace dNode{
 //     static InvokerArgument instance;
 //     return instance;
 //   };
-//   std::string getName(){ return this->_name; };
-//   bool valid(){ return !this->_name.empty() && this->_name != "" && this->_type != TYPE_INVALID; };
+//   std::string getName(){ return this->_moduleName; };
+//   bool valid(){ return !this->_moduleName.empty() && this->_moduleName != "" && this->_type != TYPE_INVALID; };
 //   template<typename T>
 //   T as(typename enableIf<isBool<T>::value>::type* = 0){
 //     if (this->_type == TYPE_BOOL) return T(this->_value.asBool);
@@ -511,10 +570,10 @@ namespace dNode{
 //   std::string getModule(){ return this->_module; };
 //   std::string getMethod(){ return this->_method; };
 //   std::vector<std::string>* getParamNames(){
-//     std::vector<std::string>* _names = new std::vector<std::string>();
+//     std::vector<std::string>* _moduleNames = new std::vector<std::string>();
 //     for (args_Type::iterator _it = this->getArgs()->begin(); _it != this->getArgs()->end(); ++_it)
-//       _names->push_back(_it->first);
-//     return _names;
+//       _moduleNames->push_back(_it->first);
+//     return _moduleNames;
 //   };
 //   template<typename T>
 //   Invoker& add(std::string name, T value){
@@ -735,22 +794,22 @@ namespace dNode{
 //   typedef std::map<std::string, std::string> param_Type;
 // private:
 //   std::string _module;
-//   std::string _name;
+//   std::string _moduleName;
 //   param_Type* _params;
 //   param_Type* getParams(){
 //     if (this->_params == NULL) this->_params = new param_Type();
 //     return this->_params;
 //   };
 //   std::string getUniqueName(){
-//     return this->_module + "." + this->_name;
+//     return this->_module + "." + this->_moduleName;
 //   };
 // public:
 //   MethodInfo(std::string module, std::string name){
 //     this->_module = module;
-//     this->_name = name;
+//     this->_moduleName = name;
 //   };
 //   std::string getModule(){ return this->_module; };
-//   std::string getName(){ return this->_name; };
+//   std::string getName(){ return this->_moduleName; };
 //   MethodInfo* addParam(std::string name, std::string type){
 //     this->getParams()->insert(std::make_pair(name, type));
 //     return this;
@@ -782,21 +841,21 @@ namespace dNode{
 // typedef std::vector<MethodInfo*> listMethod_Type;
 // class IModule{
 // private:
-//   std::string _name;
-//   std::string _version;
+//   std::string _moduleName;
+//   std::string _moduleVersion;
 // protected:
 //   typedef IResultData*(IModule::*execHandler)(IExecArgs* args);
 //   virtual execHandler getHandler(std::string method){ return NULL; };
 //   IModule(std::string name, std::string version = "1.0"){
-//     this->_name = name;
-//     this->_version = version;
+//     this->_moduleName = name;
+//     this->_moduleVersion = version;
 //   };
 //   virtual IResult* makeResult(std::string method){
-//     return (new IResult(this->_name, method));
+//     return (new IResult(this->_moduleName, method));
 //   };
 // public:
 //   IResult* execute(ExecMeta* execInfo){
-//     if (execInfo->getModule() != this->_name)
+//     if (execInfo->getModule() != this->_moduleName)
 //       return this->makeResult(execInfo->getMethod())->setData(exceptionData("InvalidModule", "Invalid module [" + execInfo->getModule() + "] to execute"));
 //     execHandler _handler = this->getHandler(execInfo->getMethod());
 //     if (_handler != NULL)

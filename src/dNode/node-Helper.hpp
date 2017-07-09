@@ -23,32 +23,90 @@ struct pointer_template{ static const bool value = false; };
 template<typename T>
 struct pointer_template<T*>{ static const bool value = true; };
 template<typename T>
-bool isPointer(){ return pointer_template<T>::value; }
+struct isPointer{ static const bool value = pointer_template<T>::value; };
+template<typename T>
+struct clearPointer{ typedef T type; };
+template<typename T>
+struct clearPointer<T*>{typedef T type; };
+
+template<typename T>
+struct reference_template{ static const bool value = false; };
+template<typename T>
+struct reference_template<T&>{ static const bool value = true; };
+template<typename T>
+struct isReference{ static const bool value = reference_template<T>::value; };
+template<typename T>
+struct clearReference{ typedef T type; };
+template<typename T>
+struct clearReference<T&>{ typedef T type; };
+
+template<typename T>
+struct const_template{ static const bool value = false; };
+template<typename T>
+struct const_template<const T>{ static const bool value = true; };
+template<typename T>
+struct isConst{ static const bool value = const_template<T>::value; };
+template<typename T>
+struct clearConst{ typedef T type; };
+template<typename T>
+struct clearConst<const T>{ typedef T type; };
+
+template<typename T>
+struct clearType{ typedef T type; };
+template<typename T>
+struct clearType<T&>{ typedef T type; };
+template<typename T>
+struct clearType<T*>{ typedef T type; };
+template<typename T>
+struct clearType<const T>{ typedef T type; };
+template<typename T>
+struct clearType<const T&>{ typedef T type; };
+template<typename T>
+struct clearType<const T*>{ typedef T type; };
+
+template<class T>
+struct clearClass{ typedef T type; };
+template<class T>
+struct clearClass<T&>{ typedef T type; };
+template<class T>
+struct clearClass<T*>{ typedef T type; };
+template<class T>
+struct clearClass<const T>{ typedef T type; };
+template<class T>
+struct clearClass<const T&>{ typedef T type; };
+template<class T>
+struct clearClass<const T*>{ typedef T type; };
+
+template<class TBase, class TDerived>
+struct pre_based_of{
+protected:
+  typedef char Yes[1];
+  typedef char No[1];
+  static Yes &probe(const TBase*);
+  static No &probe(...);
+public:
+  enum{
+    value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
+  };
+};
+template<class TBase, class TDerived>
+struct isBaseOf: pre_based_of<typename clearClass<TBase>::type, typename clearClass<TDerived>::type>{ };
+
 template<typename T, typename U>
 struct isSame{ static const bool value = false; };
 template<typename T>
 struct isSame<T, T>{ static const bool value = true; };
-// template<typename TBase, typename TDerived>
-// class isBaseOf{
-// protected:
-//   typedef char Yes[1];
-//   typedef char No[1];
-//   static Yes &probe(const TBase*);
-//   static No &probe(...);
-// public:
-//   enum{
-//     value = sizeof(probe(reinterpret_cast<TDerived*>(0))) = sizeof(Yes)
-//   };
-// };
 template<bool condition, typename T = void>
 struct enableIf{ };
 template<typename T>
 struct enableIf<true, T>{ typedef T type; };
+
 template<typename T>
 struct isBool{ static const bool value = isSame<bool, T>::value; };
 template<typename T>
 struct isInteger{
   static const bool value =
+    isSame<bool, T>::value ||
     isSame<signed char, T>::value ||
     isSame<unsigned char, T>::value ||
     isSame<signed short, T>::value ||
@@ -67,20 +125,13 @@ struct isChars{ static const bool value = isSame<const char*, T>::value; };
 template<typename T>
 struct isString{ static const bool value = isSame<std::string, T>::value; };
 template<typename T>
-bool isNative(){
-  return
-    isBool<T>::value ||
+struct isNative{
+  static const bool value = isBool<T>::value ||
     isInteger<T>::value ||
     isFloat<T>::value ||
     isChars<T>::value ||
     isString<T>::value;
 };
-// template<class T>
-// struct isObject{
-//   static const bool value = isSame<IObject, T>::value ||
-//     isSame<IObject*, T>::value ||
-//     isBaseOf<IObject, T>::value;
-// };
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };
 bool isJSONInteger(JsonVariant json){
   return json.is<signed char>() ||

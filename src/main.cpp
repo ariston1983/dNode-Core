@@ -33,15 +33,51 @@
 //   return _args;
 // };
 
-template <typename Base> std::true_type is_base_of_test_func(const volatile Base*);
-template <typename Base> std::false_type is_base_of_test_func(const volatile void*);
-template <typename Base, typename Derived>
-using pre_is_base_of = decltype(is_base_of_test_func<Base>(std::declval<Derived*>()));
+// class TestObject: public IJSONSupport{
+// public:
+//   virtual void fillJSON(JsonVariant json){
+//     if (json.is<JsonObject>()){
+//       json["name"] = "dodol garut";
+//       json["age"] = 10;
+//     }
+//   };
+// };
 
+// template<typename T>
+// void printJSON(T* value, typename enableIf<isBaseOf<IJSONSupport, T>::value>::type* = 0){
+//   IJSONSupport* _obj = static_cast<IJSONSupport*>(value);
+//   Serial.println(_obj->toJSON().c_str());
+// };
 
-class MyObject: public IObject{
+class TestObject: public dNode::Object{
+private:
+  std::string _name;
 public:
-  void print(){ Serial.println("Hello World"); };
+  TestObject(std::string name): Object(){ this->_name = name; };
+  virtual std::string toString(){ return this->_name; };
+};
+class MyList: public dNode::List<TestObject*>{ };
+void foreachTestObject(dNode::Object* context, TestObject* item){
+  Serial.println(item->toString().c_str());
+};
+void foreachInt(dNode::Object* context, int item){
+  Serial.println(item);
+};
+void foreachDict(dNode::Object* context, std::string key, TestObject* value){
+  Serial.println(key.c_str());
+  Serial.print("..."); Serial.println(value->toString().c_str());
+};
+template<typename T>
+void checkReference(){
+  Serial.println(isBaseOf<dNode::Object, typename clearReference<T>::type>::value && isReference<T>::value);
+  Serial.println(isSame<typename enableIf<isBaseOf<dNode::Object,
+   typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type,
+   typename clearReference<T>::type>::value);
+};
+template<typename T>
+bool printReference(T& value, typename enableIf<isBaseOf<dNode::Object,
+  typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type* = 0){
+  Serial.println(value.toString().c_str());
 };
 
 // template<class T>
@@ -54,11 +90,33 @@ void setup(){
   Serial.begin(115200);
   Serial.println();
 
-  // MyObject* _x = new MyObject;
-  // TestObject(_x);
-  // delete _x;
-  bool _x = pre_is_base_of<IObject, MyObject>()::value;
-  Serial.println(_x);
+  // TestObject _t("Mike");
+  // checkReference<TestObject&>();
+  // printReference<TestObject&>(_t);
+  dNode::Variant _var = var(new TestObject("Mike"));
+  TestObject* _obj = (TestObject*)_var; //_var->as<TestObject*>();
+  Serial.println(_obj->toString().c_str());
+
+  // MyList* _list = new MyList();
+  // _list->add(new TestObject("Mike"));
+  // _list->add(new TestObject("Sarah"));
+  // _list->add(new TestObject("Rachel"));
+  // _list->forEach(&foreachTestObject);
+
+  // dNode::List<int>* _iList = new dNode::List<int>();
+  // _iList->add(100);
+  // _iList->add(200);
+  // _iList->add(300);
+  // _iList->forEach(&foreachInt);
+
+  // dNode::Dictionary<std::string, TestObject*>* _dict = new dNode::Dictionary<std::string, TestObject*>();
+  // _dict->add("one", new TestObject("Mike"));
+  // _dict->add("two", new TestObject("Sarah"));
+  // _dict->add("three", new TestObject("Rachel"));
+  // _dict->forEach(&foreachDict);
+
+  // TestObject* _obj = new TestObject();
+  // printJSON(_obj);
 
   // float _x = test<float>(10);
 

@@ -22,7 +22,60 @@ template<typename T>
 struct pointer_template<T*>{ static const bool value = true; };
 template<typename T>
 struct isPointer{ static const bool value = pointer_template<T>::value; };
-template<typename TBase, typename TDerived>
+template<typename T>
+struct clearPointer{ typedef T type; };
+template<typename T>
+struct clearPointer<T*>{typedef T type; };
+
+template<typename T>
+struct reference_template{ static const bool value = false; };
+template<typename T>
+struct reference_template<T&>{ static const bool value = true; };
+template<typename T>
+struct isReference{ static const bool value = reference_template<T>::value; };
+template<typename T>
+struct clearReference{ typedef T type; };
+template<typename T>
+struct clearReference<T&>{ typedef T type; };
+
+template<typename T>
+struct const_template{ static const bool value = false; };
+template<typename T>
+struct const_template<const T>{ static const bool value = true; };
+template<typename T>
+struct isConst{ static const bool value = const_template<T>::value; };
+template<typename T>
+struct clearConst{ typedef T type; };
+template<typename T>
+struct clearConst<const T>{ typedef T type; };
+
+template<typename T>
+struct clearType{ typedef T type; };
+template<typename T>
+struct clearType<T&>{ typedef T type; };
+template<typename T>
+struct clearType<T*>{ typedef T type; };
+template<typename T>
+struct clearType<const T>{ typedef T type; };
+template<typename T>
+struct clearType<const T&>{ typedef T type; };
+template<typename T>
+struct clearType<const T*>{ typedef T type; };
+
+template<class T>
+struct clearClass{ typedef T type; };
+template<class T>
+struct clearClass<T&>{ typedef T type; };
+template<class T>
+struct clearClass<T*>{ typedef T type; };
+template<class T>
+struct clearClass<const T>{ typedef T type; };
+template<class T>
+struct clearClass<const T&>{ typedef T type; };
+template<class T>
+struct clearClass<const T*>{ typedef T type; };
+
+template<class TBase, class TDerived>
 struct pre_based_of{
 protected:
   typedef char Yes[1];
@@ -34,16 +87,19 @@ public:
     value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
   };
 };
-template<typename TBase, typename TDerived>
-struct isBaseOf: pre_based_of<TBase, TDerived>{ };
+template<class TBase, class TDerived>
+struct isBaseOf: pre_based_of<typename clearClass<TBase>::type, typename clearClass<TDerived>::type>{ };
+
 template<typename T, typename U>
 struct isSame{ static const bool value = false; };
 template<typename T>
 struct isSame<T, T>{ static const bool value = true; };
+
 template<bool condition, typename T = void>
 struct enableIf{ };
 template<typename T>
 struct enableIf<true, T>{ typedef T type; };
+
 template<typename T>
 struct isBool{ static const bool value = isSame<bool, T>::value; };
 template<typename T>
@@ -75,23 +131,7 @@ struct isNative{
     isChars<T>::value ||
     isString<T>::value;
 };
-// template<typename T>
-// bool isNative(){
-//   return
-//     isSame<T, bool>::value ||
-//     isSame<T, char>::value ||
-//     isSame<T, unsigned char>::value ||
-//     isSame<T, byte>::value ||
-//     isSame<T, int16_t>::value ||
-//     isSame<T, int32_t>::value ||
-//     isSame<T, int64_t>::value ||
-//     isSame<T, uint16_t>::value ||
-//     isSame<T, uint32_t>::value ||
-//     isSame<T, uint64_t>::value ||
-//     isSame<T, float>::value ||
-//     isSame<T, const char*>::value ||
-//     isSame<T, std::string>::value;
-// };
+
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };
 bool isJSONInteger(JsonVariant json){
   return json.is<signed char>() ||

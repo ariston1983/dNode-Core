@@ -187,6 +187,13 @@ namespace dNode{
   };
   
   class Variant : public Object{
+    union Value{
+      unsigned long asInteger;
+      float asFloat;
+      const char* asChars;
+      Object* asObject;
+    };
+  protected:
     enum Type{
       TYPE_INVALID,
       TYPE_BOOL,
@@ -195,18 +202,10 @@ namespace dNode{
       TYPE_CHARS,
       TYPE_OBJECT
     };
-    union Value{
-      unsigned long asInteger;
-      float asFloat;
-      const char* asChars;
-      Object* asObject;
-    };
-  private:
     Type _type;
     Value _value;
-  protected:
-    Type getType(){ return this->_type; };
   public:
+    Variant(){ this->_type == TYPE_INVALID; };
     template<typename T>
     Variant(T value, typename enableIf<isNative<T>::value>::type* = 0){
       this->_type = TYPE_INVALID;
@@ -214,14 +213,17 @@ namespace dNode{
     };
     Variant(dNode::Object* value){
       this->_type = TYPE_INVALID;
-      this->set(value);
+      if (value != NULL)
+        this->set(value);
     };
     ~Variant(){
       if (this->_type == TYPE_OBJECT) delete_if_pointer(this->_value.asObject);
     };
 
+    bool valid(){ return this->_type != TYPE_INVALID; };
+
     template<typename T>
-    bool set(T value, typename enableIf<isInteger<T>::Value>::type* = 0){
+    bool set(T value, typename enableIf<isInteger<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID){
         this->_value.asInteger = static_cast<unsigned long>(value);
         if (isBool<T>::value) this->_type = TYPE_BOOL;
@@ -289,7 +291,7 @@ namespace dNode{
       else return "";
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, typename clearPointer<T>::type>::value && isPointer<T>::value, T>::type as(){
+    typename enableIf<isBaseOf<dNode::Object, typename clearPointer<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* as(){
       Serial.println("pointer casting");
       if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
       else return NULL;
@@ -307,34 +309,40 @@ namespace dNode{
  ****************************************************************************/
 namespace dNode{
   namespace Module{
-    class InvokeArgument: public Variant, public JSONObject{
-    private:
-      std::string _name;
+    class JSONArgument: public Variant
+    , public JSONObject{
     public:
-      template<typename T>
-      InvokeArgument(std::string name, T value, typename enableIf<isNative<T>::value>::type* = 0)
-      : Variant(value){ };
-      InvokeArgument(std::string name, JSONObject* value): Variant(value){ };
-      virtual bool fromJSON(JsonVariant json){};
-      virtual void fillJSON(JsonVariant json){
+      JSONArgument(JsonVariant json)
+      : Variant(){
+        if (!this->fromJSON(json)) this->_type = TYPE_INVALID;
       };
+      bool fromJSON(JsonVariant json){
+        if (json.success()){
+          if (json.is<JsonArray>()){
+            dNode::List<JSONArgument*>* _arr = new dNode::List<JSONArgument*>();
+            for (auto _el: json.as<JsonArray>()){
+              JSONArgument* _arg = new JSONArgument(_el);
+              if (_arg->valid()) _arr->add(_arg);
+              else return false;
+            }
+            this->set(_arr);
+          }
+          else if (json.is<JsonObject>()){
+          }
+          else if (json.is<bool>()) this->set(json.as<bool>());
+          else if (json.is<unsigned long>()) this->set(json.as<unsigned long>());
+          else if (json.is<float>()) this->set(json.as<float>());
+          else if (json.is<const char*>()) this->set(json.as<const char*>());
+          else return false;
+        }
+        else return false;
+      };
+      void fillJSON(JsonVariant json){};
     };
-    
-    template<typename T>
-    InvokeArgument* argument(T value){ return new InvokeArgument(value); };
-    class Invoker: public Dictionary<std::string, InvokeArgument*>{
-    private:
-      std::string _module;
-      std::string _method;
-    public:
-      Invoker(std::string module, std::string method)
-      : Dictionary(){
-        this->_module = module;
-        this->_method = method;
-      };
-      bool valid(){
-        return !this->_module.empty() && this->_module != "" && !this->_method.empty() && this->_method != "";
-      };
+    class JSONParam: public JSONObject{};
+    class JSONInvoker: public Dictionary<std::string, JSONParam>
+    , public JSONObject{
+
     };
   };
 };

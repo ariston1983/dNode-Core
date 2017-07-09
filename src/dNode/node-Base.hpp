@@ -149,6 +149,12 @@ namespace dNode{
       this->clear();
     };
     int count(){ return this->getMap()->count(); };
+    std::vector<TKey>* getKeys(){
+      std::vector<TKey>* _keys = new std::vector<TKey>();
+      for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it)
+        _keys->push_back(_it->first);
+      return _keys;
+    };
     bool has(TKey key){
       typename dict_Type::iterator _it = this->getMap()->find(key);
       return (_it != this->getMap()->end());
@@ -207,7 +213,7 @@ namespace dNode{
   public:
     Variant(){ this->_type == TYPE_INVALID; };
     template<typename T>
-    Variant(T value, typename enableIf<isNative<T>::value>::type* = 0){
+    Variant(T value, typename enableIf<isNative<T>::value>::type = 0){
       this->_type = TYPE_INVALID;
       this->set<T>(value);
     };
@@ -223,7 +229,7 @@ namespace dNode{
     bool valid(){ return this->_type != TYPE_INVALID; };
 
     template<typename T>
-    bool set(T value, typename enableIf<isInteger<T>::value>::type* = 0){
+    bool set(T value, typename enableIf<isInteger<T>::value>::type = 0){
       if (this->_type == TYPE_INVALID){
         this->_value.asInteger = static_cast<unsigned long>(value);
         if (isBool<T>::value) this->_type = TYPE_BOOL;
@@ -235,7 +241,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isFloat<T>::value>::type* = 0){
+    bool set(T value, typename enableIf<isFloat<T>::value>::type = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_FLOAT){
         this->_value.asFloat = static_cast<float>(value);
         this->_type = TYPE_FLOAT;
@@ -244,7 +250,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isChars<T>::value>::type* = 0){
+    bool set(T value, typename enableIf<isChars<T>::value>::type = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<const char*>(value);
         this->_type = TYPE_CHARS;
@@ -253,7 +259,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
+    bool set(T value, typename enableIf<isString<T>::value>::type = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<std::string>(value).c_str();
         this->_type = TYPE_CHARS;
@@ -313,11 +319,21 @@ namespace dNode{
     };
 
     template<typename T>
-    operator T(){ Serial.println("converison"); return this->as<T>(); };
+    operator T(){ return this->as<T>(); };
+    template<typename T>
+    typename enableIf<isNative<T>::value, T>::type operator=(T value){
+      this->set(value);
+      return this->as<T>();
+    };
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* operator=(dNode::Object* value){
+      this->set(value);
+      return this->as<T>();
+    };
   };
   template<typename T>
-  Variant& var(T value){ return *new Variant(value); };
-  Variant& var(dNode::Object* value){ return *new Variant(value); };
+  Variant* var(typename enableIf<isNative<T>::value>::type value){ return new Variant(value); };
+  Variant* var(dNode::Object* value){ return new Variant(value); };
 };
 /****************************************************************************
  * Invoker interfaces
@@ -348,8 +364,8 @@ namespace dNode{
       ResultInfo* noHandler(ExecuteInfo* info){ return NULL; };
       ResultInfo* moduleInfoHandler(ExecuteInfo* info = 0){
         ObjectInfo* _info = new ObjectInfo();
-        _info->add("name", this->getModuleName());
-        _info->add("version", this->getModuleVersion());
+        _info->add("name", var(this->getModuleName()));
+        _info->add("version", var(this->getModuleVersion()));
         ResultInfo* _res = new ResultInfo();
         _res->add("module", _info);
         return _res;

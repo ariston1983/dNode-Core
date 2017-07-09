@@ -49,36 +49,36 @@
 //   Serial.println(_obj->toJSON().c_str());
 // };
 
-class TestObject: public dNode::Object{
-private:
-  std::string _name;
-public:
-  TestObject(std::string name): Object(){ this->_name = name; };
-  virtual std::string toString(){ return this->_name; };
-};
-class MyList: public dNode::List<TestObject*>{ };
-void foreachTestObject(dNode::Object* context, TestObject* item){
-  Serial.println(item->toString().c_str());
-};
-void foreachInt(dNode::Object* context, int item){
-  Serial.println(item);
-};
-void foreachDict(dNode::Object* context, std::string key, TestObject* value){
-  Serial.println(key.c_str());
-  Serial.print("..."); Serial.println(value->toString().c_str());
-};
-template<typename T>
-void checkReference(){
-  Serial.println(isBaseOf<dNode::Object, typename clearReference<T>::type>::value && isReference<T>::value);
-  Serial.println(isSame<typename enableIf<isBaseOf<dNode::Object,
-   typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type,
-   typename clearReference<T>::type>::value);
-};
-template<typename T>
-bool printReference(T& value, typename enableIf<isBaseOf<dNode::Object,
-  typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type* = 0){
-  Serial.println(value.toString().c_str());
-};
+// class TestObject: public dNode::Object{
+// private:
+//   std::string _name;
+// public:
+//   TestObject(std::string name): Object(){ this->_name = name; };
+//   virtual std::string toString(){ return this->_name; };
+// };
+// class MyList: public dNode::List<TestObject*>{ };
+// void foreachTestObject(dNode::Object* context, TestObject* item){
+//   Serial.println(item->toString().c_str());
+// };
+// void foreachInt(dNode::Object* context, int item){
+//   Serial.println(item);
+// };
+// void foreachDict(dNode::Object* context, std::string key, TestObject* value){
+//   Serial.println(key.c_str());
+//   Serial.print("..."); Serial.println(value->toString().c_str());
+// };
+// template<typename T>
+// void checkReference(){
+//   Serial.println(isBaseOf<dNode::Object, typename clearReference<T>::type>::value && isReference<T>::value);
+//   Serial.println(isSame<typename enableIf<isBaseOf<dNode::Object,
+//    typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type,
+//    typename clearReference<T>::type>::value);
+// };
+// template<typename T>
+// bool printReference(T& value, typename enableIf<isBaseOf<dNode::Object,
+//   typename clearReference<T>::type>::value && isReference<T>::value, typename clearReference<T>::type>::type* = 0){
+//   Serial.println(value.toString().c_str());
+// };
 
 // template<class T>
 // void TestObject(T value, typename enableIf<isObject<T>::value>::type* = 0){
@@ -93,9 +93,11 @@ void setup(){
   // TestObject _t("Mike");
   // checkReference<TestObject&>();
   // printReference<TestObject&>(_t);
-  dNode::Variant _var = var(new TestObject("Mike"));
-  TestObject* _obj = (TestObject*)_var; //_var->as<TestObject*>();
-  Serial.println(_obj->toString().c_str());
+  // dNode::Variant _var = var(new TestObject("Mike"));
+  // TestObject* _obj = (TestObject*)_var; //_var->as<TestObject*>();
+  // Serial.println(_obj->toString().c_str());
+
+  Serial.println(isNative<std::string>::value);
 
   // MyList* _list = new MyList();
   // _list->add(new TestObject("Mike"));

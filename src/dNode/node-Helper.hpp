@@ -81,7 +81,7 @@ template<class TBase, class TDerived>
 struct pre_based_of{
 protected:
   typedef char Yes[1];
-  typedef char No[1];
+  typedef char No[2];
   static Yes &probe(const TBase*);
   static No &probe(...);
 public:

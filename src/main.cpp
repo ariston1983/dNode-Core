@@ -86,12 +86,32 @@
 //   _obj->print();
 // };
 
-class forwardClass;
-void test(forwardClass* value){ };
+class TestObject: public dNode::Object{
+private:
+  std::string _name;
+public:
+  TestObject(std::string name){ this->_name = name; };
+  std::string getName(){ return this->_name ; };
+  virtual bool equal(dNode::Object* obj){
+    TestObject* _cmp = static_cast<TestObject*>(obj);
+    if (_cmp){
+      return this->_name == _cmp->getName();
+    }
+    else return false;
+  };
+};
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
+
+  TestObject* _o1 = new TestObject("Mike");
+  TestObject* _o2 = new TestObject("Mike");
+  dNode::Variant* _v1 = var(_o1);
+  dNode::Variant* _v2 = var(_o2);
+  Serial.println(_v1->equal(_v2));
+
+  // enable<const char*>();
 
   // TestObject _t("Mike");
   // checkReference<TestObject&>();
@@ -100,7 +120,8 @@ void setup(){
   // TestObject* _obj = (TestObject*)_var; //_var->as<TestObject*>();
   // Serial.println(_obj->toString().c_str());
 
-  Serial.println(isNative<std::string>::value);
+  // dNode::Variant* _var = new dNode::Variant("Hello");
+  // Serial.println(_var->as<const char*>());
 
   // MyList* _list = new MyList();
   // _list->add(new TestObject("Mike"));

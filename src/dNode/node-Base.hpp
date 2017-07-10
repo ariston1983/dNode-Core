@@ -17,7 +17,7 @@ namespace dNode{
     Object(){ this->_empty = true; };
     static Object* empty(){ return new Object(); };
     friend bool operator==(Object& lhs, Object& rhs){ return lhs.equal(&rhs); };
-    virtual bool equal(Object* obj){ return this->toString() == obj->toString(); };
+    virtual bool equal(Object* obj){ return false; };
     virtual std::string toString(){ return ""; };
   };
 
@@ -45,13 +45,13 @@ namespace dNode{
     };
   };
 
-  template<typename T>
-  using foreach_List = void(*)(Object*, T);
-  template<typename TKey, typename TValue>
-  using foreach_Dictionary = void(*)(Object*, TKey, TValue);
+  template<typename TItem, typename TReturn>
+  using foreach_List = void(*)(Object*, TItem, bool&, TReturn&);
+  template<typename TKey, typename TValue, typename TReturn>
+  using foreach_Dictionary = void(*)(Object*, TKey, TValue, bool&, TReturn&);
 
   template<typename T>
-  class List: public Object{
+  class List: public dNode::Object{
     typedef std::vector<T> list_Type;
   private:
     bool _locked;
@@ -126,9 +126,13 @@ namespace dNode{
           delete_if_pointer(*_it);
       this->getList()->clear();
     };
-    void forEach(foreach_List<T> action){
-      for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
-        action(this, *_it);
+    template<typename TReturn>
+    void forEach(foreach_List<T, TReturn> action, TReturn& ret){
+      bool _abort = false;
+      for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
+        action(this, *_it, _abort, ret);
+        if (_abort) break;
+      }
     };
     T& operator[](int index){
       if (index >= 0 && index < this->count()){
@@ -140,10 +144,23 @@ namespace dNode{
       }
       return T();
     };
+
+    virtual bool equal(dNode::Object* obj){
+      if (obj == NULL) return false;
+      dNode::List<T>* _cmp = static_cast<dNode::List<T>*>(obj);
+      if (_cmp){
+        if (_cmp->count() != this->count()) return false;
+        
+        for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
+
+        }
+      }
+      else return false;
+    };
   };
   
   template<typename TKey, typename TValue>
-  class Dictionary: public Object{
+  class Dictionary: public dNode::Object{
     typedef std::map<TKey, TValue> dict_Type;
   private:
     bool _locked;
@@ -153,7 +170,7 @@ namespace dNode{
       return this->_map;
     };
   protected:
-    void lock(){ this->_lock = true; };
+    void lock(){ this->_locked = true; };
   public:
     Dictionary(): Object(){
       this->_map = NULL;
@@ -193,18 +210,22 @@ namespace dNode{
       else return false;
     };
     void clear(){
-      if (this->_locked) return false;
+      if (this->_locked) return;
       for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it){
         delete_if_pointer(_it->first);
         delete_if_pointer(_it->second);
         this->getMap()->erase(_it);
       }
     };
-    void forEach(foreach_Dictionary<TKey, TValue> action){
-      for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it)
-        action(this, _it->first, _it->second);
+    template<typename TReturn>
+    void forEach(foreach_Dictionary<TKey, TValue, TReturn> action, TReturn& ret){
+      bool _abort = false;
+      for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it){
+        action(this, _it->first, _it->second, _abort, ret);
+        if (_abort) break;
+      }
     };
-    TValue& operator[](TKey key){
+    TValue operator[](TKey key){
       typename dict_Type::iterator _it = this->getMap()->find(key);
       return (_it != this->getMap()->end()) ? _it->second : TValue();
     };
@@ -231,7 +252,7 @@ namespace dNode{
   public:
     Variant(){ this->_type == TYPE_INVALID; };
     template<typename T>
-    Variant(T value, typename enableIf<isNative<T>::value>::type = 0){
+    Variant(T value, typename enableIf<isNative<T>::value>::type* = 0){
       this->_type = TYPE_INVALID;
       this->set<T>(value);
     };
@@ -247,7 +268,7 @@ namespace dNode{
     bool valid(){ return this->_type != TYPE_INVALID; };
 
     template<typename T>
-    bool set(T value, typename enableIf<isInteger<T>::value>::type = 0){
+    bool set(T value, typename enableIf<isInteger<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID){
         this->_value.asInteger = static_cast<unsigned long>(value);
         if (isBool<T>::value) this->_type = TYPE_BOOL;
@@ -259,7 +280,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isFloat<T>::value>::type = 0){
+    bool set(T value, typename enableIf<isFloat<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_FLOAT){
         this->_value.asFloat = static_cast<float>(value);
         this->_type = TYPE_FLOAT;
@@ -268,7 +289,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isChars<T>::value>::type = 0){
+    bool set(T value, typename enableIf<isChars<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<const char*>(value);
         this->_type = TYPE_CHARS;
@@ -277,7 +298,7 @@ namespace dNode{
       else return false;
     };
     template<typename T>
-    bool set(T value, typename enableIf<isString<T>::value>::type = 0){
+    bool set(T value, typename enableIf<isString<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID || this->_type == TYPE_CHARS){
         this->_value.asChars = static_cast<std::string>(value).c_str();
         this->_type = TYPE_CHARS;
@@ -305,7 +326,7 @@ namespace dNode{
     template<typename T>
     typename enableIf<isString<T>::value, bool>::type is(){ return this->valid() && this->_type == TYPE_CHARS; };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, bool>::type is(){
+    typename enableIf<isBaseOf<dNode::Object, T>::value && isPointer<T>::value, bool>::type is(){
       return this->valid() && this->_type == TYPE_OBJECT && dynamic_cast<typename clearClass<T>::type*>(this->_value.asObject);
     };
     
@@ -320,38 +341,52 @@ namespace dNode{
       else return T();
     };
     template<typename T>
-    typename enableIf<isChars<T>::value, const char*>::type as(){
+    typename enableIf<isChars<T>::value && !isString<T>::value, const char*>::type as(){
       if (this->_type == TYPE_CHARS) return this->_value.asChars;
       else return "";
     };
     template<typename T>
-    typename enableIf<isString<T>::value, std::string>::type as(){
+    typename enableIf<!isChars<T>::value && isString<T>::value, std::string>::type as(){
       if (this->_type == TYPE_CHARS) return std::string(this->_value.asChars);
       else return "";
     };
     template<class T>
-    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* as(){
+    typename enableIf<isBaseOf<dNode::Object, T>::value && isPointer<T>::value, typename clearPointer<T>::type*>::type as(){
       if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
       else return NULL;
     };
 
     template<typename T>
-    operator T(){ return this->as<T>(); };
+    operator T() const{ return this->as<T>(); };
     template<typename T>
     typename enableIf<isNative<T>::value, T>::type operator=(T value){
       this->set(value);
       return this->as<T>();
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* operator=(dNode::Object* value){
+    typename enableIf<isBaseOf<dNode::Object, T>::value && isPointer<T>::value,
+      typename clearPointer<T>::type*>::type operator=(dNode::Object* value){
       this->set(value);
       return this->as<T>();
     };
+    
+    template<typename T>
+    bool equal(T obj, typename enableIf<isNative<T>::value>::type* = 0){
+      return this->as<T>() == obj;
+    };
+    virtual bool equal(dNode::Variant* obj){
+      return this->equal(obj->as<dNode::Object*>());
+    };
+    virtual bool equal(dNode::Object* obj){
+      if (obj == NULL){ return false; }
+      else if (this->_type != TYPE_OBJECT){ return false; }
+      else return this->_value.asObject->equal(obj);
+    };
   };
   template<typename T>
-  struct isVariant{};
+  struct isVariant{ static const bool value = isBaseOf<dNode::Variant, typename clearClass<T>::type>::value && isPointer<T>::value; };
   template<typename T>
-  Variant* var(typename enableIf<isNative<T>::value>::type value){ return new Variant(value); };
+  Variant* var(T value, typename enableIf<isNative<T>::value>::type* = 0){ return new Variant(value); };
   Variant* var(dNode::Object* value){ return new Variant(value); };
 };
 /****************************************************************************
@@ -359,59 +394,96 @@ namespace dNode{
  ****************************************************************************/
 namespace dNode{
   namespace Module{
-    class ObjectInfo: public dNode::Dictionary<std::string, dNode::Variant>{};
-    class ArrayInfo: public dNode::List<dNode::Variant>{};
+    class ObjectInfo: public dNode::Dictionary<std::string, dNode::Variant*>{};
+    class ArrayInfo: public dNode::List<dNode::Variant*>{};
+    
     class ExecuteInfo : public ObjectInfo{
-    private:
-      std::string _module;
-      std::string _method;
     public:
-      ExecuteInfo(std::string module, std::string method): ObjectInfo(){};
-      std::string getModule(){ return this->_module; };
-      std::string getMethod(){ return this->_method; };
+      ExecuteInfo(std::string module, std::string method, Variant* params)
+      : ObjectInfo(){
+        this->add("module", var(module));
+        this->add("method", var(method));
+        if (params != NULL) this->add("params", params);
+        this->lock();
+      };
+      std::string getModule(){ return (*this)["module"]->as<std::string>(); };
+      std::string getMethod(){ return (*this)["module"]->as<std::string>(); };
+      Variant* getParams(){ return this->has("params") ? (*this)["params"] : NULL; };
     };
 
-    class ExceptionResult: public ObjectInfo{
+    class ResultData: public ObjectInfo{
+    private:
+      std::string _type;
     public:
-      ExceptionResult(std::string type, std::string message, std::string details = ""): ObjectInfo(){
-        this->add("type", type);
-        this->add("message", message);
-        this->add("details", details);
+      ResultData(std::string type): ObjectInfo(){ this->_type = type; };
+    };
+    class ExceptionData: public ResultData{
+    public:
+      ExceptionData(std::string type, std::string message, std::string details = "")
+      : ResultData(type){
+        this->add("message", var(message));
+        this->add("details", var(details));
         this->lock();
       };
     };
-    class DataResult: public ObjectInfo{};
+    ExceptionData* nullReferenceException(std::string field, std::string message = "", std::string details = ""){
+      if (message.empty() || message == "") message = "NULL value access";
+      ExceptionData* _data = new ExceptionData("NullReferenceException", message, details);
+      _data->add("field", var(field));
+      return _data;
+    };
+    ExceptionData* methodNotFoundException(std::string module, std::string method, std::string message = "", std::string details = ""){
+      if (message.empty() || message == "") message = "Method not found in member";
+      ExceptionData* _data = new ExceptionData("MethodNotFoundException", message, details);
+      _data->add("module", var(module));
+      _data->add("method", var(method));
+      return _data;
+    };
+    ExceptionData* invalidExecutionException(std::string forModule, std::string inModule, std::string message = "", std::string details = ""){
+      if (message.empty() || message == "") message = "Invalid execution in module";
+      ExceptionData* _data = new ExceptionData(message, details);
+      _data->add("for", var(forModule));
+      _data->add("in", var(inModule));
+      return _data;
+    };
+
     class ResultInfo: public Object{
     private:
       ExecuteInfo* _execInfo;
-      Variant* _value;
+      ResultData* _data;
     public:
-      template<typename T>
-      ResultInfo(ExecuteInfo* info, T value, typename enableIf<,T>::type* = 0): Object(){};
+      ResultInfo(ExecuteInfo* execInfo, ResultData* data): Object(){
+        this->_execInfo = execInfo;
+        this->_data = data;
+      };
     };
 
     class ModuleBase: public Object{
     private:
       std::string _moduleName;
       std::string _moduleVersion;
-      ResultInfo* noHandler(ExecuteInfo* info){ return NULL; };
-      ResultInfo* moduleInfoHandler(ExecuteInfo* info = 0){
-        ObjectInfo* _info = new ObjectInfo();
-        _info->add("name", var(this->getModuleName()));
-        _info->add("version", var(this->getModuleVersion()));
-        ResultInfo* _res = new ResultInfo();
-        _res->add("module", _info);
-        return _res;
+      ResultData* noHandler(ExecuteInfo* executeInfo){ return methodNotFoundException(executeInfo->getModule(), executeInfo->getMethod()); };
+      ResultData* moduleInfoHandler(ExecuteInfo* executeInfo = 0){
+        ResultData* _data = new ResultData("ModuleInfo");
+        _data->add("name", var(this->getModuleName()));
+        _data->add("version", var(this->getModuleVersion()));
+        return _data;
       };
     protected:
-      typedef ResultInfo*(ModuleBase::*execHandler)(ExecuteInfo*);
-      virtual execHandler getExecHandler(std::string method){ return &ModuleBase::noHandler; };
+      typedef ResultData*(ModuleBase::*execHandler)(ExecuteInfo*);
+      virtual execHandler getExecHandler(std::string method){
+        if (method == "moduleInfo") return &ModuleBase::moduleInfoHandler;
+        else return &ModuleBase::noHandler;
+      };
     public:
-      ResultInfo* execute(ExecuteInfo* info){
-        if (info != NULL && info->getModule() == this->getModuleName()){
-          if (info->getMethod() == "moduleInfo") return moduleInfoHandler();
-          else (this->*getExecHandler(info->getMethod()))(info);
-        }
+      ResultInfo* execute(ExecuteInfo* executeInfo){
+        ResultData* _data = NULL;
+        if (executeInfo != NULL && executeInfo->getModule() == this->getModuleName())
+          _data = (this->*getExecHandler(executeInfo->getMethod()))(executeInfo);
+        else if (executeInfo == NULL) _data = nullReferenceException("executeInfo", "", "error on: ModuleBase::execute(ExecuteInfo*)");
+        else if (executeInfo->getModule() != this->getModuleName())
+          _data = invalidExecutionException(executeInfo->getModule(), this->getModuleName(), "", "error on: ModuleBase::execute(ExecuteInfo*)");
+        return new ResultInfo(executeInfo, _data);
       };
       std::string getModuleName(){ return this->_moduleName; };
       std::string getModuleVersion(){ return this->_moduleVersion; };

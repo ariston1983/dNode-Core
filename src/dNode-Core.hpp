@@ -1,7 +1,7 @@
 #pragma once
 
-//#include "dNode/node-Base.hpp"
 #include "dNode/node-Helper.hpp"
+#include "dNode/node-Base.hpp"
 //#include "dNode/RPC/rpc-Base.hpp"
 
 //#include "dNode/Logger/node-Logger.hpp"

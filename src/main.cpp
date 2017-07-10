@@ -86,6 +86,9 @@
 //   _obj->print();
 // };
 
+class forwardClass;
+void test(forwardClass* value){ };
+
 void setup(){
   Serial.begin(115200);
   Serial.println();

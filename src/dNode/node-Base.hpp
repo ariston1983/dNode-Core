@@ -54,24 +54,31 @@ namespace dNode{
   class List: public Object{
     typedef std::vector<T> list_Type;
   private:
+    bool _locked;
     list_Type* _list;
     list_Type* getList(){
       if (this->_list == NULL) this->_list = new list_Type();
       return this->_list;
     };
+  protected:
+    void lock(){ this->_locked = true; };
   public:
     List(): Object(){
       this->_list = NULL;
+      this->_locked = false;
     };
     ~List(){
+      this->_locked = false;
       this->clear();
     };
     int count(){ return this->getList()->count(); };
     bool add(T value){
+      if (this->_locked) return false;
       this->getList()->push_back(value);
       return true;
     };
     bool insert(int index, T value){
+      if (this->_locked) return false;
       if (index == 0){
         if (this->count() > 0) this->getList()->push_front(value);
         else this->getList()->push_back(value);
@@ -93,10 +100,12 @@ namespace dNode{
       }
     };
     bool remove(T value){
+      if (this->_locked) return false;
       this->getList()->remove(value);
       return true;
     };
     bool removeAt(int index){
+      if (this->_locked) return false;
       if (index >= 0 && index < this->count()){
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
@@ -111,6 +120,7 @@ namespace dNode{
       return false;
     };
     bool clear(){
+      if (this->_locked) return false;
       if (isPointer<T>::value)
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
           delete_if_pointer(*_it);
@@ -136,16 +146,21 @@ namespace dNode{
   class Dictionary: public Object{
     typedef std::map<TKey, TValue> dict_Type;
   private:
+    bool _locked;
     dict_Type* _map;
     dict_Type* getMap(){
       if (this->_map == NULL) this->_map = new dict_Type();
       return this->_map;
     };
+  protected:
+    void lock(){ this->_lock = true; };
   public:
     Dictionary(): Object(){
       this->_map = NULL;
+      this->_locked = false;
     };
     ~Dictionary(){
+      this->_locked = false;
       this->clear();
     };
     int count(){ return this->getMap()->count(); };
@@ -160,12 +175,14 @@ namespace dNode{
       return (_it != this->getMap()->end());
     };
     bool add(TKey key, TValue value){
+      if (this->_locked) return false;
       typename dict_Type::iterator _it = this->getMap()->find(key);
       if (_it == this->getMap()->end()) this->getMap()->insert(std::make_pair(key, value));
       else _it->second = value;
       return true;
     };
     bool remove(TKey key){
+      if (this->_locked) return false;
       typename dict_Type::iterator _it = this->getMap()->find(key);
       if (_it != this->getMap()->end()){
         delete_if_pointer(_it->first);
@@ -176,6 +193,7 @@ namespace dNode{
       else return false;
     };
     void clear(){
+      if (this->_locked) return false;
       for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it){
         delete_if_pointer(_it->first);
         delete_if_pointer(_it->second);
@@ -313,7 +331,6 @@ namespace dNode{
     };
     template<class T>
     typename enableIf<isBaseOf<dNode::Object, typename clearClass<T>::type>::value && isPointer<T>::value, typename clearPointer<T>::type>::type* as(){
-      Serial.println("pointer casting");
       if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
       else return NULL;
     };
@@ -331,6 +348,8 @@ namespace dNode{
       return this->as<T>();
     };
   };
+  template<typename T>
+  struct isVariant{};
   template<typename T>
   Variant* var(typename enableIf<isNative<T>::value>::type value){ return new Variant(value); };
   Variant* var(dNode::Object* value){ return new Variant(value); };
@@ -351,11 +370,25 @@ namespace dNode{
       std::string getModule(){ return this->_module; };
       std::string getMethod(){ return this->_method; };
     };
-    class ResultInfo: public ObjectInfo{
+
+    class ExceptionResult: public ObjectInfo{
+    public:
+      ExceptionResult(std::string type, std::string message, std::string details = ""): ObjectInfo(){
+        this->add("type", type);
+        this->add("message", message);
+        this->add("details", details);
+        this->lock();
+      };
+    };
+    class DataResult: public ObjectInfo{};
+    class ResultInfo: public Object{
     private:
       ExecuteInfo* _execInfo;
+      Variant* _value;
+    public:
+      template<typename T>
+      ResultInfo(ExecuteInfo* info, T value, typename enableIf<,T>::type* = 0): Object(){};
     };
-    class ExceptionInfo: public ResultInfo{};
 
     class ModuleBase: public Object{
     private:

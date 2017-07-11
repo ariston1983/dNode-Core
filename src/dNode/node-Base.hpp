@@ -16,7 +16,7 @@ namespace dNode{
   public:
     Object(){ this->_empty = true; };
     static Object* empty(){ return new Object(); };
-    friend bool operator==(Object& lhs, Object& rhs){ return lhs.equal(&rhs); };
+    friend bool operator==(Object& lhs, Object& rhs){ Serial.println("Object operator compare"); return lhs.equal(&rhs); };
     virtual bool equal(Object* obj){ return false; };
     virtual std::string toString(){ return ""; };
   };
@@ -370,14 +370,17 @@ namespace dNode{
       return this->as<T>();
     };
     
+    friend bool operator==(Variant& lhs, Variant& rhs){ Serial.println("Variant operator compare"); return lhs.equal(&rhs); };
     template<typename T>
     bool equal(T obj, typename enableIf<isNative<T>::value>::type* = 0){
       return this->as<T>() == obj;
     };
     virtual bool equal(dNode::Variant* obj){
+      Serial.println("Variant equal check");
       return this->equal(obj->as<dNode::Object*>());
     };
     virtual bool equal(dNode::Object* obj){
+      Serial.println("Variant Object equal check");
       if (obj == NULL){ return false; }
       else if (this->_type != TYPE_OBJECT){ return false; }
       else return this->_value.asObject->equal(obj);

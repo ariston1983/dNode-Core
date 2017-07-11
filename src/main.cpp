@@ -93,6 +93,7 @@ public:
   TestObject(std::string name){ this->_name = name; };
   std::string getName(){ return this->_name ; };
   virtual bool equal(dNode::Object* obj){
+    Serial.println("TestObject compare");
     TestObject* _cmp = static_cast<TestObject*>(obj);
     if (_cmp){
       return this->_name == _cmp->getName();
@@ -100,6 +101,7 @@ public:
     else return false;
   };
 };
+
 
 void setup(){
   Serial.begin(115200);
@@ -109,7 +111,7 @@ void setup(){
   TestObject* _o2 = new TestObject("Mike");
   dNode::Variant* _v1 = var(_o1);
   dNode::Variant* _v2 = var(_o2);
-  Serial.println(_v1->equal(_v2));
+  Serial.println((*_v1) == (*_v2));
 
   // enable<const char*>();
 

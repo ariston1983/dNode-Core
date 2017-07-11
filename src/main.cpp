@@ -95,23 +95,64 @@ public:
   virtual bool equal(dNode::Object* obj){
     Serial.println("TestObject compare");
     TestObject* _cmp = static_cast<TestObject*>(obj);
-    if (_cmp){
-      return this->_name == _cmp->getName();
-    }
-    else return false;
+    Serial.println(this->getName().c_str());
+    Serial.println(_cmp->getName().c_str());
+    return this->_name == _cmp->getName();
+  };
+  virtual std::string toString(){
+    return this->getName();
   };
 };
+// void iterate(dNode::Object* obj){
+//   dNode::List<dNode::Variant*>* _cmp = static_cast<dNode::List<dNode::Variant*>*>(obj);
+//   dNode::Variant* _var = (*_cmp)[0];
+//   TestObject* _to = _var->as<TestObject*>();
+//   Serial.println(_to->getName().c_str());
+// };
+// bool compare(dNode::Object* o1, dNode::Object* o2){
+//   dNode::Variant* _v1 = static_cast<dNode::Variant*>(o1);
+//   dNode::Variant* _v2 = static_cast<dNode::Variant*>(o2);
+//   return cast_value(_v1) == cast_value(_v2);
+// };
 
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
+  // dNode::List<dNode::Variant*>* _lv1 = new dNode::List<dNode::Variant*>();
+  // _lv1->add(var(new TestObject("Mike")));
+  // _lv1->add(var(new TestObject("Sarah")));
+  // dNode::List<dNode::Variant*>* _lv2 = new dNode::List<dNode::Variant*>();
+  // _lv2->add(var(new TestObject("Mike")));
+  // _lv2->add(var(new TestObject("Sarah")));
+  // Serial.println(cast_value(_lv1) == cast_value(_lv2));
+  // iterate(_lv2);
+  // Serial.println(compare((*_lv1)[0], (*_lv2)[0]));
+  // Serial.println(cast_value((*_lv1)[0]).as<TestObject*>()->getName().c_str());
+  // Serial.println(cast_value((*_lv2)[0]).as<TestObject*>()->getName().c_str());
+  // Serial.println(cast_value((*_lv1)[0]).equal(cast_value((*_lv2)[0])));
+
+  // dNode::List<int>* _l1 = new dNode::List<int>();
+  // _l1->add(100);
+  // _l1->add(200);
+  // dNode::List<int>* _l2 = new dNode::List<int>();
+  // _l2->add(200);
+  // _l2->add(300);
+  // Serial.println(cast_value(_l1) == cast_value(_l2));
+
   TestObject* _o1 = new TestObject("Mike");
   TestObject* _o2 = new TestObject("Mike");
   dNode::Variant* _v1 = var(_o1);
   dNode::Variant* _v2 = var(_o2);
-  Serial.println((*_v1) == (*_v2));
+  Serial.println(ref(_v1) == ref(_v2));
+  // Serial.println(cast_value(_v1) == cast_value(_v2));
+
+  // std::string _st1 = "Hello";
+  // std::string _st2 = "Hello";
+  // Serial.println(cast_value(_st1) == cast_value(_st2));
+  // std::string _st3 = "World";
+  // Serial.println(cast_value(_st1) == cast_value(_st3));
 
   // enable<const char*>();
 

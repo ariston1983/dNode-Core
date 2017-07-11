@@ -5,133 +5,152 @@
 #include "FS.h"
 #include "ArduinoJson.h"
 
-/******************************************************************************
- * Pointer helper
- ******************************************************************************/
-template<typename T> inline
-void delete_if_pointer(T const&){ };
-template<typename T> inline
-void delete_if_pointer(T* const& p){ delete p; };
+namespace dNode{
+  /******************************************************************************
+  * Pointer helper
+  ******************************************************************************/
+  template<typename T> inline
+  void delete_if_pointer(T const&){ };
+  template<typename T> inline
+  void delete_if_pointer(T* const& p){ delete p; };
 
-/******************************************************************************
- * Type helper
- ******************************************************************************/
-class IObject;
+  /******************************************************************************
+  * Type helper
+  ******************************************************************************/
+  template<typename T>
+  struct pointer_template{ static const bool value = false; };
+  template<typename T>
+  struct pointer_template<T*>{ static const bool value = true; };
+  template<typename T>
+  struct isPointer{ static const bool value = pointer_template<T>::value; };
+  template<typename T>
+  struct clearPointer{ typedef T type; };
+  template<typename T>
+  struct clearPointer<T*>{typedef T type; };
 
-template<typename T>
-struct pointer_template{ static const bool value = false; };
-template<typename T>
-struct pointer_template<T*>{ static const bool value = true; };
-template<typename T>
-struct isPointer{ static const bool value = pointer_template<T>::value; };
-template<typename T>
-struct clearPointer{ typedef T type; };
-template<typename T>
-struct clearPointer<T*>{typedef T type; };
+  template<typename T>
+  struct reference_template{ static const bool value = false; };
+  template<typename T>
+  struct reference_template<T&>{ static const bool value = true; };
+  template<typename T>
+  struct isReference{ static const bool value = reference_template<T>::value; };
+  template<typename T>
+  struct clearReference{ typedef T type; };
+  template<typename T>
+  struct clearReference<T&>{ typedef T type; };
 
-template<typename T>
-struct reference_template{ static const bool value = false; };
-template<typename T>
-struct reference_template<T&>{ static const bool value = true; };
-template<typename T>
-struct isReference{ static const bool value = reference_template<T>::value; };
-template<typename T>
-struct clearReference{ typedef T type; };
-template<typename T>
-struct clearReference<T&>{ typedef T type; };
+  template<typename T>
+  struct const_template{ static const bool value = false; };
+  template<typename T>
+  struct const_template<const T>{ static const bool value = true; };
+  template<typename T>
+  struct isConst{ static const bool value = const_template<T>::value; };
+  template<typename T>
+  struct clearConst{ typedef T type; };
+  template<typename T>
+  struct clearConst<const T>{ typedef T type; };
 
-template<typename T>
-struct const_template{ static const bool value = false; };
-template<typename T>
-struct const_template<const T>{ static const bool value = true; };
-template<typename T>
-struct isConst{ static const bool value = const_template<T>::value; };
-template<typename T>
-struct clearConst{ typedef T type; };
-template<typename T>
-struct clearConst<const T>{ typedef T type; };
+  template<typename T>
+  struct clearType{ typedef T type; };
+  template<typename T>
+  struct clearType<T&>{ typedef T type; };
+  template<typename T>
+  struct clearType<T*>{ typedef T type; };
+  template<typename T>
+  struct clearType<const T>{ typedef T type; };
+  template<typename T>
+  struct clearType<const T&>{ typedef T type; };
+  template<typename T>
+  struct clearType<const T*>{ typedef T type; };
 
-template<typename T>
-struct clearType{ typedef T type; };
-template<typename T>
-struct clearType<T&>{ typedef T type; };
-template<typename T>
-struct clearType<T*>{ typedef T type; };
-template<typename T>
-struct clearType<const T>{ typedef T type; };
-template<typename T>
-struct clearType<const T&>{ typedef T type; };
-template<typename T>
-struct clearType<const T*>{ typedef T type; };
+  template<class T>
+  struct clearClass{ typedef T type; };
+  template<class T>
+  struct clearClass<T&>{ typedef T type; };
+  template<class T>
+  struct clearClass<T*>{ typedef T type; };
+  template<class T>
+  struct clearClass<const T>{ typedef T type; };
+  template<class T>
+  struct clearClass<const T&>{ typedef T type; };
+  template<class T>
+  struct clearClass<const T*>{ typedef T type; };
 
-template<class T>
-struct clearClass{ typedef T type; };
-template<class T>
-struct clearClass<T&>{ typedef T type; };
-template<class T>
-struct clearClass<T*>{ typedef T type; };
-template<class T>
-struct clearClass<const T>{ typedef T type; };
-template<class T>
-struct clearClass<const T&>{ typedef T type; };
-template<class T>
-struct clearClass<const T*>{ typedef T type; };
-
-template<class TBase, class TDerived>
-struct pre_based_of{
-protected:
-  typedef char Yes[1];
-  typedef char No[2];
-  static Yes &probe(const TBase*);
-  static No &probe(...);
-public:
-  enum{
-    value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
+  template<class TBase, class TDerived>
+  struct pre_based_of{
+  protected:
+    typedef char Yes[1];
+    typedef char No[2];
+    static Yes &probe(const TBase*);
+    static No &probe(...);
+  public:
+    enum{
+      value = sizeof(probe(reinterpret_cast<TDerived*>(0))) == sizeof(Yes)
+    };
   };
-};
-template<class TBase, class TDerived>
-struct isBaseOf: pre_based_of<typename clearClass<TBase>::type, typename clearClass<TDerived>::type>{ };
+  template<class TBase, class TDerived>
+  struct isBaseOf: pre_based_of<typename clearClass<TBase>::type, typename clearClass<TDerived>::type>{ };
 
-template<typename T, typename U>
-struct isSame{ static const bool value = false; };
-template<typename T>
-struct isSame<T, T>{ static const bool value = true; };
-template<bool condition, typename T = void>
-struct enableIf{ };
-template<typename T>
-struct enableIf<true, T>{ typedef T type; };
+  class Variant;
+  template<typename T>
+  struct isVariant{ static const bool value = isBaseOf<dNode::Variant, typename clearClass<T>::type>::value; };
 
-template<typename T>
-struct isBool{ static const bool value = isSame<bool, T>::value; };
-template<typename T>
-struct isInteger{
-  static const bool value =
-    isSame<bool, T>::value ||
-    isSame<signed char, T>::value ||
-    isSame<unsigned char, T>::value ||
-    isSame<signed short, T>::value ||
-    isSame<unsigned short, T>::value ||
-    isSame<signed int, T>::value ||
-    isSame<unsigned int, T>::value ||
-    isSame<signed long, T>::value ||
-    isSame<unsigned long, T>::value;
+  template<typename T, typename U>
+  struct isSame{ static const bool value = false; };
+  template<typename T>
+  struct isSame<T, T>{ static const bool value = true; };
+  template<bool condition, typename T = void>
+  struct enableIf{ };
+  template<typename T>
+  struct enableIf<true, T>{ typedef T type; };
+
+  template<typename T>
+  struct isBool{ static const bool value = isSame<bool, T>::value; };
+  template<typename T>
+  struct isInteger{
+    static const bool value =
+      isSame<bool, T>::value ||
+      isSame<signed char, T>::value ||
+      isSame<unsigned char, T>::value ||
+      isSame<signed short, T>::value ||
+      isSame<unsigned short, T>::value ||
+      isSame<signed int, T>::value ||
+      isSame<unsigned int, T>::value ||
+      isSame<signed long, T>::value ||
+      isSame<unsigned long, T>::value;
+  };
+  template<typename T>
+  struct isFloat{
+    static const bool value = isSame<float, T>::value;
+  };
+  template<typename T>
+  struct isChars{ static const bool value = isSame<const char*, T>::value; };
+  template<typename T>
+  struct isString{ static const bool value = isSame<std::string, T>::value; };
+  template<typename T>
+  struct isNative{
+    static const bool value = isBool<T>::value ||
+      isInteger<T>::value ||
+      isFloat<T>::value ||
+      isChars<T>::value ||
+      isString<T>::value;
+  };
+
+  template<typename T>
+  T ref(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return value; };
+  template<typename T>
+  T& ref(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
+  template<typename T>
+  T& ref(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return *value; };
+
+  template<typename T>
+  T* ptr(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return &value; };
+  template<typename T>
+  T* ptr(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return &value; };
+  template<typename T>
+  T* ptr(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
 };
-template<typename T>
-struct isFloat{
-  static const bool value = isSame<float, T>::value;
-};
-template<typename T>
-struct isChars{ static const bool value = isSame<const char*, T>::value; };
-template<typename T>
-struct isString{ static const bool value = isSame<std::string, T>::value; };
-template<typename T>
-struct isNative{
-  static const bool value = isBool<T>::value ||
-    isInteger<T>::value ||
-    isFloat<T>::value ||
-    isChars<T>::value ||
-    isString<T>::value;
-};
+
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };
 bool isJSONInteger(JsonVariant json){
   return json.is<signed char>() ||

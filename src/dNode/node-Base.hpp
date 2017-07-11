@@ -16,7 +16,10 @@ namespace dNode{
   public:
     Object(){ this->_empty = true; };
     static Object* empty(){ return new Object(); };
-    friend bool operator==(Object& lhs, Object& rhs){ Serial.println("Object operator compare"); return lhs.equal(&rhs); };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T& rhs){ return lhs.equal(ptr(rhs)); };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T& rhs){ return !lhs.equal(ptr(rhs)); };
     virtual bool equal(Object* obj){ return false; };
     virtual std::string toString(){ return ""; };
   };
@@ -71,7 +74,7 @@ namespace dNode{
       this->_locked = false;
       this->clear();
     };
-    int count(){ return this->getList()->count(); };
+    int count(){ return this->getList()->size(); };
     bool add(T value){
       if (this->_locked) return false;
       this->getList()->push_back(value);
@@ -134,29 +137,31 @@ namespace dNode{
         if (_abort) break;
       }
     };
-    T& operator[](int index){
+    T operator[](int index){
       if (index >= 0 && index < this->count()){
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
-          if (_curr == index) return _it;
+          if (_curr == index) return *_it;
           _curr++;
         }
       }
       return T();
     };
 
-    virtual bool equal(dNode::Object* obj){
-      if (obj == NULL) return false;
-      dNode::List<T>* _cmp = static_cast<dNode::List<T>*>(obj);
-      if (_cmp){
-        if (_cmp->count() != this->count()) return false;
-        
-        for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
-
-        }
-      }
-      else return false;
-    };
+    // virtual bool equal(const dNode::Object& obj){
+    //   if (obj == NULL) return false;
+    //   dNode::List<T> _cmp = static_cast<dNode::List<T>&>(obj);
+    //   if (_cmp){
+    //     if (_cmp->count() != this->count()) return false;
+    //     for (int _i = 0; _i < this->count(); _i++){
+    //       T _v1 = static_cast<T>((*this)[_i]);
+    //       T _v2 = static_cast<T>((*_cmp)[_i]);
+    //       if (cast_value(_v1) != cast_value(_v2)) return false;
+    //     }
+    //     return true;
+    //   }
+    //   else return false;
+    // };
   };
   
   template<typename TKey, typename TValue>
@@ -331,28 +336,28 @@ namespace dNode{
     };
     
     template<typename T>
-    typename enableIf<isBool<T>::value, bool>::type as(){
+    typename enableIf<isBool<T>::value, bool>::type as() const{
       if (this->_type == TYPE_BOOL) return static_cast<bool>(this->_value.asInteger);
       else return T();
     };
     template<typename T>
-    typename enableIf<isInteger<T>::value, T>::type as(){
+    typename enableIf<isInteger<T>::value, T>::type as() const{
       if (this->_type == TYPE_INTEGER) return static_cast<T>(this->_value.asInteger);
       else return T();
     };
     template<typename T>
-    typename enableIf<isChars<T>::value && !isString<T>::value, const char*>::type as(){
+    typename enableIf<isChars<T>::value && !isString<T>::value, const char*>::type as() const{
       if (this->_type == TYPE_CHARS) return this->_value.asChars;
       else return "";
     };
     template<typename T>
-    typename enableIf<!isChars<T>::value && isString<T>::value, std::string>::type as(){
+    typename enableIf<!isChars<T>::value && isString<T>::value, std::string>::type as() const{
       if (this->_type == TYPE_CHARS) return std::string(this->_value.asChars);
       else return "";
     };
-    template<class T>
-    typename enableIf<isBaseOf<dNode::Object, T>::value && isPointer<T>::value, typename clearPointer<T>::type*>::type as(){
-      if (this->_type == TYPE_OBJECT) return static_cast<T>(this->_value.asObject);
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Object, T>::value, T*>::type as(){
+      if (this->_type == TYPE_OBJECT) return static_cast<typename clearPointer<T>::type*>(this->_value.asObject);
       else return NULL;
     };
 
@@ -370,24 +375,24 @@ namespace dNode{
       return this->as<T>();
     };
     
-    friend bool operator==(Variant& lhs, Variant& rhs){ Serial.println("Variant operator compare"); return lhs.equal(&rhs); };
     template<typename T>
     bool equal(T obj, typename enableIf<isNative<T>::value>::type* = 0){
       return this->as<T>() == obj;
     };
-    virtual bool equal(dNode::Variant* obj){
-      Serial.println("Variant equal check");
-      return this->equal(obj->as<dNode::Object*>());
+    template<typename T>
+    typename enableIf<isVariant<T>::value, bool>::type equal(T* obj){
+      if (obj == NULL || this->_type != TYPE_OBJECT) return false;
+      else{
+        Variant* _var = static_cast<Variant*>(obj);
+        return this->equal(_var->as<dNode::Object>());
+      };
     };
-    virtual bool equal(dNode::Object* obj){
-      Serial.println("Variant Object equal check");
-      if (obj == NULL){ return false; }
-      else if (this->_type != TYPE_OBJECT){ return false; }
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Object, T>::value && !isVariant<T>::value, bool>::type equal(T* obj){
+      if (obj == NULL || this->_type != TYPE_OBJECT) return false;
       else return this->_value.asObject->equal(obj);
     };
   };
-  template<typename T>
-  struct isVariant{ static const bool value = isBaseOf<dNode::Variant, typename clearClass<T>::type>::value && isPointer<T>::value; };
   template<typename T>
   Variant* var(T value, typename enableIf<isNative<T>::value>::type* = 0){ return new Variant(value); };
   Variant* var(dNode::Object* value){ return new Variant(value); };

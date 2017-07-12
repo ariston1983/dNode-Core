@@ -137,11 +137,11 @@ namespace dNode{
   };
 
   template<typename T>
-  T ref(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return value; };
+  T val(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return value; };
   template<typename T>
-  T& ref(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
+  T& val(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
   template<typename T>
-  T& ref(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return *value; };
+  T& val(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return *value; };
 
   template<typename T>
   T* ptr(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return &value; };

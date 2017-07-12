@@ -120,13 +120,30 @@ void setup(){
   Serial.begin(115200);
   Serial.println();
 
+  // TestObject* _o1 = new TestObject("Mike");
+  // TestObject* _o2 = new TestObject("Mike");
+  // dNode::Variant* _v1 = var(_o1);
+  // dNode::Variant* _v2 = var(_o2);
+  // Serial.println(val(_v1) == val(_v2));
+  
   // dNode::List<dNode::Variant*>* _lv1 = new dNode::List<dNode::Variant*>();
   // _lv1->add(var(new TestObject("Mike")));
   // _lv1->add(var(new TestObject("Sarah")));
   // dNode::List<dNode::Variant*>* _lv2 = new dNode::List<dNode::Variant*>();
   // _lv2->add(var(new TestObject("Mike")));
   // _lv2->add(var(new TestObject("Sarah")));
-  // Serial.println(cast_value(_lv1) == cast_value(_lv2));
+  // Serial.println(val(_lv1) == val(_lv2));
+
+  dNode::Dictionary<std::string, dNode::Variant*>* _dv1 = new dNode::Dictionary<std::string, dNode::Variant*>();
+  _dv1->add("Name", dNode::var("Mike"));
+  _dv1->add("Age", dNode::var(30));
+  _dv1->add("Object", var(new TestObject("Mike")));
+  dNode::Dictionary<std::string, dNode::Variant*>* _dv2 = new dNode::Dictionary<std::string, dNode::Variant*>();
+  _dv2->add("Name", dNode::var("Mike"));
+  _dv2->add("Age", dNode::var(30));
+  _dv2->add("Object", var(new TestObject("Mike")));
+  Serial.println(val(_dv1) == val(_dv2));
+
   // iterate(_lv2);
   // Serial.println(compare((*_lv1)[0], (*_lv2)[0]));
   // Serial.println(cast_value((*_lv1)[0]).as<TestObject*>()->getName().c_str());
@@ -141,11 +158,6 @@ void setup(){
   // _l2->add(300);
   // Serial.println(cast_value(_l1) == cast_value(_l2));
 
-  TestObject* _o1 = new TestObject("Mike");
-  TestObject* _o2 = new TestObject("Mike");
-  dNode::Variant* _v1 = var(_o1);
-  dNode::Variant* _v2 = var(_o2);
-  Serial.println(ref(_v1) == ref(_v2));
   // Serial.println(cast_value(_v1) == cast_value(_v2));
 
   // std::string _st1 = "Hello";

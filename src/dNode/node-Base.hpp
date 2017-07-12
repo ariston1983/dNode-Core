@@ -53,9 +53,9 @@ namespace dNode{
   template<typename TKey, typename TValue, typename TReturn>
   using foreach_Dictionary = void(*)(Object*, TKey, TValue, bool&, TReturn&);
 
-  template<typename T>
+  template<typename TItem>
   class List: public dNode::Object{
-    typedef std::vector<T> list_Type;
+    typedef std::vector<TItem> list_Type;
   private:
     bool _locked;
     list_Type* _list;
@@ -75,12 +75,12 @@ namespace dNode{
       this->clear();
     };
     int count(){ return this->getList()->size(); };
-    bool add(T value){
+    bool add(TItem value){
       if (this->_locked) return false;
       this->getList()->push_back(value);
       return true;
     };
-    bool insert(int index, T value){
+    bool insert(int index, TItem value){
       if (this->_locked) return false;
       if (index == 0){
         if (this->count() > 0) this->getList()->push_front(value);
@@ -102,7 +102,7 @@ namespace dNode{
         }
       }
     };
-    bool remove(T value){
+    bool remove(TItem value){
       if (this->_locked) return false;
       this->getList()->remove(value);
       return true;
@@ -113,7 +113,7 @@ namespace dNode{
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
           if (_curr == index){
-            if (isPointer<T>::value) delete_if_pointer(*_it);
+            if (isPointer<TItem>::value) delete_if_pointer(*_it);
             this->getList()->erase(_it);
             return true;
           }
@@ -124,20 +124,20 @@ namespace dNode{
     };
     bool clear(){
       if (this->_locked) return false;
-      if (isPointer<T>::value)
+      if (isPointer<TItem>::value)
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it)
           delete_if_pointer(*_it);
       this->getList()->clear();
     };
     template<typename TReturn>
-    void forEach(foreach_List<T, TReturn> action, TReturn& ret){
+    void forEach(foreach_List<TItem, TReturn> action, TReturn& ret){
       bool _abort = false;
       for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
         action(this, *_it, _abort, ret);
         if (_abort) break;
       }
     };
-    T operator[](int index){
+    TItem operator[](int index){
       if (index >= 0 && index < this->count()){
         int _curr = 0;
         for (typename list_Type::iterator _it = this->getList()->begin(); _it != this->getList()->end(); ++_it){
@@ -145,23 +145,21 @@ namespace dNode{
           _curr++;
         }
       }
-      return T();
+      return TItem();
     };
 
-    // virtual bool equal(const dNode::Object& obj){
-    //   if (obj == NULL) return false;
-    //   dNode::List<T> _cmp = static_cast<dNode::List<T>&>(obj);
-    //   if (_cmp){
-    //     if (_cmp->count() != this->count()) return false;
-    //     for (int _i = 0; _i < this->count(); _i++){
-    //       T _v1 = static_cast<T>((*this)[_i]);
-    //       T _v2 = static_cast<T>((*_cmp)[_i]);
-    //       if (cast_value(_v1) != cast_value(_v2)) return false;
-    //     }
-    //     return true;
-    //   }
-    //   else return false;
-    // };
+    template<typename U>
+    typename enableIf<isBaseOf<dNode::List<TItem>, U>::value, bool>::type equal(U* obj){
+      if (obj == NULL) return false;
+      dNode::List<TItem>* _cmp = static_cast<dNode::List<TItem>*>(obj);
+      if (_cmp->count() != this->count()) return false;
+      for (int _i = 0; _i < this->count(); _i++){
+        TItem _v1 = static_cast<TItem>((*this)[_i]);
+        TItem _v2 = static_cast<TItem>((*_cmp)[_i]);
+        if (val(_v1) != val(_v2)) return false;
+      };
+      return true;
+    };
   };
   
   template<typename TKey, typename TValue>
@@ -177,6 +175,7 @@ namespace dNode{
   protected:
     void lock(){ this->_locked = true; };
   public:
+    typedef std::vector<TKey> listKey_Type;
     Dictionary(): Object(){
       this->_map = NULL;
       this->_locked = false;
@@ -186,8 +185,8 @@ namespace dNode{
       this->clear();
     };
     int count(){ return this->getMap()->count(); };
-    std::vector<TKey>* getKeys(){
-      std::vector<TKey>* _keys = new std::vector<TKey>();
+    listKey_Type* getKeys(){
+      listKey_Type* _keys = new listKey_Type();
       for (typename dict_Type::iterator _it = this->getMap()->begin(); _it != this->getMap()->end(); ++_it)
         _keys->push_back(_it->first);
       return _keys;
@@ -234,6 +233,20 @@ namespace dNode{
       typename dict_Type::iterator _it = this->getMap()->find(key);
       return (_it != this->getMap()->end()) ? _it->second : TValue();
     };
+
+    template<typename U>
+    typename enableIf<isBaseOf<dNode::Dictionary<TKey, TValue>, U>::value, bool>::type equal(U* obj){
+      if (obj == NULL) return false;
+      dNode::Dictionary<TKey, TValue>* _cmp = static_cast<dNode::Dictionary<TKey, TValue>*>(obj);
+      listKey_Type* _keys = this->getKeys();
+      for (typename listKey_Type::iterator _kit = _keys->begin(); _kit != _keys->end(); ++_kit){
+        if (!_cmp->has(*_kit)) return false;
+        TValue _v1 = static_cast<TValue>((*this)[*_kit]);
+        TValue _v2 = static_cast<TValue>((*_cmp)[*_kit]);
+        if (val(_v1) != val(_v2)) return false;
+      };
+      return true;
+    };
   };
   
   class Variant : public Object{
@@ -252,6 +265,7 @@ namespace dNode{
       TYPE_CHARS,
       TYPE_OBJECT
     };
+    
     Type _type;
     Value _value;
   public:
@@ -271,7 +285,8 @@ namespace dNode{
     };
 
     bool valid(){ return this->_type != TYPE_INVALID; };
-
+    Type getType(){ return this->_type; };
+    
     template<typename T>
     bool set(T value, typename enableIf<isInteger<T>::value>::type* = 0){
       if (this->_type == TYPE_INVALID){
@@ -341,8 +356,13 @@ namespace dNode{
       else return T();
     };
     template<typename T>
-    typename enableIf<isInteger<T>::value, T>::type as() const{
+    typename enableIf<isInteger<T>::value && !isBool<T>::value, T>::type as() const{
       if (this->_type == TYPE_INTEGER) return static_cast<T>(this->_value.asInteger);
+      else return T();
+    };
+    template<typename T>
+    typename enableIf<isFloat<T>::value, T>::type as() const{
+      if (this->_type == TYPE_FLOAT) return static_cast<T>(this->_value.asFloat);
       else return T();
     };
     template<typename T>
@@ -376,15 +396,18 @@ namespace dNode{
     };
     
     template<typename T>
-    bool equal(T obj, typename enableIf<isNative<T>::value>::type* = 0){
-      return this->as<T>() == obj;
-    };
+    typename enableIf<isNative<T>::value, bool>::type equal(T obj){ return this->as<T>() == obj; };
     template<typename T>
     typename enableIf<isVariant<T>::value, bool>::type equal(T* obj){
-      if (obj == NULL || this->_type != TYPE_OBJECT) return false;
+      if (obj == NULL) return false;
       else{
         Variant* _var = static_cast<Variant*>(obj);
-        return this->equal(_var->as<dNode::Object>());
+        if (this->_type != _var->getType()) return false;
+        if (this->_type == TYPE_BOOL) return this->equal(_var->as<bool>());
+        else if (this->_type == TYPE_INTEGER) return this->equal<unsigned long>(_var->as<unsigned long>());
+        else if (this->_type == TYPE_FLOAT) return this->equal<float>(_var->as<float>());
+        else if (this->_type == TYPE_CHARS) return this->equal<const char*>(_var->as<const char*>());
+        else return this->equal(_var->as<dNode::Object>());
       };
     };
     template<typename T>
@@ -394,8 +417,10 @@ namespace dNode{
     };
   };
   template<typename T>
-  Variant* var(T value, typename enableIf<isNative<T>::value>::type* = 0){ return new Variant(value); };
-  Variant* var(dNode::Object* value){ return new Variant(value); };
+  typename enableIf<
+    isNative<T>::value ||
+    isBaseOf<dNode::Object, T>::value,
+    dNode::Variant*>::type var(T value){ return new Variant(value); };
 };
 /****************************************************************************
  * Invoker interfaces

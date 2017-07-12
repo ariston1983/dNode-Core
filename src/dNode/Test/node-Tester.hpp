@@ -5,6 +5,8 @@
 #include "../Logger/node-Logger.hpp"
 #include "test-Unit.hpp"
 
+using namespace dNode::UnitTest;
+
 void TEST_LOGGER(std::string message, int code, std::string data){
   std::string _print = "";
   switch (code){
@@ -29,6 +31,6 @@ void TEST_INIT(){
   LOG("TEST INITIALIZED");
 };
 template<typename TTest>
-testUnit<TTest>* RUN_TEST(std::string name){
-  return new testUnit<TTest>(name);
+TestUnit<TTest>* RUN_TEST(std::string name){
+  return new TestUnit<TTest>(name);
 };

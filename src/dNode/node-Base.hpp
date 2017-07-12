@@ -12,19 +12,83 @@
 namespace dNode{
   class Object{
   private:
-    bool _empty;
   public:
-    Object(){ this->_empty = true; };
-    static Object* empty(){ return new Object(); };
-    template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T& rhs){ return lhs.equal(ptr(rhs)); };
-    template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T& rhs){ return !lhs.equal(ptr(rhs)); };
-    virtual bool equal(Object* obj){ return false; };
+    Object(){ };
     virtual std::string toString(){ return ""; };
-  };
+    virtual bool equal(dNode::Object* obj){ return false; };
 
-  class JSONObject: public Object{
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Object, TLeft>::value && isNative<TRight>::value, bool>::type operator==(TLeft& lhs, TRight rhs){ return lhs.equal(rhs); };
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Object, TLeft>::value && isNative<TRight>::value, bool>::type operator!=(TLeft& lhs, TRight rhs){ return !lhs.equal(rhs); };
+
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T&rhs){ return lhs.equal(ptr(rhs)); };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T&rhs){ return !lhs.equal(ptr(rhs)); };
+  };
+  template<typename T>
+  struct isObject{ static const bool value = isBaseOf<dNode::Object, T>::value; };
+
+  class Comparable: public dNode::Object{
+  public:
+    Comparable(): Object(){};
+    template<typename T>
+    typename enableIf<isNative<T>::value, int>::type compare(T obj){ return -2; };
+    virtual int compare(dNode::Comparable* obj){ return -2; };
+
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Comparable, TLeft>::value && isNative<TRight>::value, bool>::type operator>(TLeft& lhs, TRight rhs){
+      int _res = lhs.compare(rhs);
+      return abs(_res) <= 1 && _res > 0;
+    };
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Comparable, TLeft>::value && isNative<TRight>::value, bool>::type operator>=(TLeft& lhs, TRight rhs){
+      int _res = lhs.compare(rhs);
+      return abs(_res) <= 1 && _res >= 0;
+    };
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Comparable, TLeft>::value && isNative<TRight>::value, bool>::type operator<(TLeft& lhs, TRight rhs){
+      int _res = lhs.compare(rhs);
+      return abs(_res) <= 1 && _res < 0;
+    };
+    template<typename TLeft, typename TRight>
+    friend typename enableIf<
+      isBaseOf<dNode::Comparable, TLeft>::value && isNative<TRight>::value, bool>::type operator<=(TLeft& lhs, TRight rhs){
+      int _res = lhs.compare(rhs);
+      return abs(_res) <= 1 && _res <= 0;
+    };
+
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Comparable, T>::value, bool>::type operator>(T& lhs, T& rhs){
+      int _res = lhs.compare(ptr(rhs));
+      return abs(_res) <= 1 && _res > 0;
+    };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Comparable, T>::value, bool>::type operator>=(T& lhs, T& rhs){
+      int _res = lhs.compare(ptr(rhs));
+      return abs(_res) <= 1 && _res >= 0;
+    };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Comparable, T>::value, bool>::type operator<(T& lhs, T& rhs){
+      int _res = lhs.compare(ptr(rhs));
+      return abs(_res) <= 1 && _res < 0;
+    };
+    template<typename T>
+    friend typename enableIf<isBaseOf<dNode::Comparable, T>::value, bool>::type operator<=(T& lhs, T& rhs){
+      int _res = lhs.compare(ptr(rhs));
+      return abs(_res) <= 1 && _res <= 0;
+    };
+  };
+  template<typename T>
+  struct isComparable{ static const bool value = isBaseOf<dNode::Comparable, T>::value; };
+
+  class JSONObject: public dNode::Object{
   public:
     static std::string stringify(JsonVariant json){
       int _len = json.measureLength()+1;
@@ -249,7 +313,7 @@ namespace dNode{
     };
   };
   
-  class Variant : public Object{
+  class Variant : public dNode::Comparable{
     union Value{
       unsigned long asInteger;
       float asFloat;
@@ -269,13 +333,14 @@ namespace dNode{
     Type _type;
     Value _value;
   public:
-    Variant(){ this->_type == TYPE_INVALID; };
+    Variant(): Comparable(){ this->_type == TYPE_INVALID; };
     template<typename T>
-    Variant(T value, typename enableIf<isNative<T>::value>::type* = 0){
+    Variant(T value, typename enableIf<isNative<T>::value>::type* = 0)
+    : Comparable(){
       this->_type = TYPE_INVALID;
       this->set<T>(value);
     };
-    Variant(dNode::Object* value){
+    Variant(dNode::Object* value): Comparable(){
       this->_type = TYPE_INVALID;
       if (value != NULL)
         this->set(value);
@@ -395,6 +460,31 @@ namespace dNode{
       return this->as<T>();
     };
     
+    template<typename T>
+    typename enableIf<isNative<T>::value, int>::type compare(T obj){
+      if (this->as<T>() > obj) return 1;
+      else if (this->as<T>() < obj) return -1;
+      else return 0;
+    };
+    template<typename T>
+    typename enableIf<isVariant<T>::value, int>::type compare(T* obj){
+      if (obj == NULL) return -2;
+      else{
+        Variant* _var = static_cast<Variant*>(obj);
+        if (this->_type != _var->getType()) return -2;
+        if (this->_type == TYPE_BOOL) return this->compare(_var->as<bool>());
+        else if (this->_type == TYPE_INTEGER) return this->compare(_var->as<unsigned long>());
+        else if (this->_type == TYPE_FLOAT) return this->compare(_var->as<float>());
+        else if (this->_type == TYPE_CHARS) return this->compare(_var->as<const char*>());
+        else return this->compare(_var->as<dNode::Comparable>());
+      };
+    };
+    template<typename T>
+    typename enableIf<isBaseOf<dNode::Comparable, T>::value && !isVariant<T>::value, bool>::type compare(T* obj){
+      if (obj == NULL || this->_type != TYPE_OBJECT) return -2;
+      else return static_cast<dNode::Comparable*>(obj)->compare(static_cast<dNode::Comparable*>(this->_value.asObject));
+    };
+
     template<typename T>
     typename enableIf<isNative<T>::value, bool>::type equal(T obj){ return this->as<T>() == obj; };
     template<typename T>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Arduino.h"
 #include <string>
 #include <vector>
 #include "FS.h"
@@ -124,7 +125,7 @@ namespace dNode{
     static const bool value = isSame<float, T>::value || isSame<double, T>::value;
   };
   template<typename T>
-  struct isChars{ static const bool value = isSame<const char*, T>::value; };
+  struct isChars{ static const bool value = isSame<char, T>::value || isSame<const char*, T>::value; };
   template<typename T>
   struct isString{ static const bool value = isSame<std::string, T>::value; };
   template<typename T>
@@ -137,18 +138,20 @@ namespace dNode{
   };
 
   template<typename T>
-  T val(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return value; };
+  const T& val(const T& value, typename enableIf<!isChars<T>::value, T>::type* = 0){ return value; };
   template<typename T>
-  T& val(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
+  const T* val(const T* value, typename enableIf<isChars<T>::value, T>::type* = 0){ return value; };
   template<typename T>
-  T& val(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return *value; };
+  T& val(T* value, typename enableIf<!isChars<T>::value, typename clearType<T>::type>::type* = 0){ return *value; };
 
   template<typename T>
-  T* ptr(T value, typename enableIf<isNative<T>::value, T>::type* = 0){ return &value; };
+  const T* ptr(const T& value, typename enableIf<isNative<T>::value && !isChars<T>::value, T>::type* = 0){ return &value; };
   template<typename T>
-  T* ptr(T& value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return &value; };
+  const T* ptr(const T* value, typename enableIf<isChars<T>::value, T>::type* = 0){ return value; };
   template<typename T>
-  T* ptr(T* value, typename enableIf<!isNative<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
+  T* ptr(T& value, typename enableIf<!isChars<T>::value, typename clearType<T>::type>::type* = 0){ return &value; };
+  template<typename T>
+  T* ptr(T* value, typename enableIf<!isChars<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
 };
 
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };

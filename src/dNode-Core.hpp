@@ -5,6 +5,8 @@
 
 #include "dNode/Test/node-Tester.hpp"
 
+// #include "dNode/Module/node-Module.hpp"
+
 //#include "dNode/RPC/rpc-Base.hpp"
 
 //#include "dNode/Logger/node-Logger.hpp"

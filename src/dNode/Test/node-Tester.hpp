@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include <string>
 #include "../Logger/node-Logger.hpp"
-#include "test-Unit.hpp"
+#include "unit-Test.hpp"
 
 using namespace dNode::UnitTest;
 
@@ -35,7 +35,7 @@ void TEST_INIT(){
   nodeLogger::init(&TEST_LOGGER);
   LOG("TEST INITIALIZED");
 };
-template<typename TTest>
-TestUnit<TTest>* RUN_TEST(std::string name){
-  return new TestUnit<TTest>(name);
+template<typename T>
+UnitTest<T>* RUN_TEST(std::string name){
+  return new UnitTest<T>(name);
 };

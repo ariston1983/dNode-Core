@@ -121,7 +121,7 @@ namespace dNode{
   };
   template<typename T>
   struct isFloat{
-    static const bool value = isSame<float, T>::value;
+    static const bool value = isSame<float, T>::value || isSame<double, T>::value;
   };
   template<typename T>
   struct isChars{ static const bool value = isSame<const char*, T>::value; };

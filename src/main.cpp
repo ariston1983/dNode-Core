@@ -1,3 +1,5 @@
+#define __TEST_NAME_LENGTH__ 25
+
 #include "Arduino.h"
 #include "dNode-Core.hpp"
 #include "Test/test-List.hpp"

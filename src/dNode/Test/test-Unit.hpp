@@ -4,6 +4,10 @@
 #include "../node-Helper.hpp"
 #include "../Logger/node-Logger.hpp"
 
+#ifndef __TEST_NAME_LENGTH__
+#define __TEST_NAME_LENGTH__ 30
+#endif
+
 namespace dNode{
   namespace UnitTest{
     enum TEST_OP{
@@ -41,22 +45,30 @@ namespace dNode{
         TEST_OP _op;
         testEvaluator<T, U> _evaluator;
         U _target;
+        std::string fixName(std::string name){
+          std::string _name = "";
+          if (name.length() > __TEST_NAME_LENGTH__) for (int _i = 0; _i < __TEST_NAME_LENGTH__; _i++) _name += name[_i];
+          else _name = name;
+          for (int _i = _name.length(); _i < __TEST_NAME_LENGTH__; _i++)
+            _name += " ";
+          return _name;
+        };
       public:
         TestExecutor(std::string testName, testGenerator<T> scenario, TEST_OP op, testEvaluator<T, U> evaluator){
-          this->_testName = testName;
+          this->_testName = fixName(testName);
           this->_scenario = scenario;
           this->_op = op;
           this->_evaluator = evaluator;
         };
         TestExecutor(std::string testName, testGenerator<T> scenario, TEST_OP op, testEvaluator<T, U> evaluator, U target){
-          this->_testName = testName;
+          this->_testName = fixName(testName);
           this->_scenario = scenario;
           this->_op = op;
           this->_evaluator = evaluator;
           this->_target = target;
         };
         bool execute(){
-          LOG("RUN [" + this->_testName + "]");
+          LOG("RUN  [" + this->_testName + "]");
           if (this->_scenario == NULL){
             LOG("TEST [" + this->_testName + "]", 1, "NO_SCENARIO");
             return false;
@@ -66,7 +78,7 @@ namespace dNode{
           LOG("scenario executed", 2);
           LOG("exec evaluator", 2);
           bool _test = this->_evaluator(this->_op, _eval, this->_target);
-          return LOG<bool>("TEST [" + this->_testName + "]", _test, 1, _test ? "GOOD" : "!!!BAD!!!");
+          return LOG<bool>("TEST [" + this->_testName + "]", _test, 1, _test ? "GOOD" : "BAD");
         };
       };
     private:

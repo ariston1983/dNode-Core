@@ -32,9 +32,7 @@ namespace Test{
       MyDictionary(): Dictionary<std::string, Variant*>(){ };
       virtual bool equal(Object* obj){
         if (obj == NULL){ LOG("MyDictionary equality NULL", 2); return false; };
-        if (!dNode::isValueOf<MyDictionary>(obj)){ LOG("MyDictionary equality invalid value", 2); return false; };
         LOG("MyDictionary equality execute Dictionary equality", 2);
-        // Dictionary<std::string, Variant*>* _cmp = static_cast<Dictionary<std::string, Variant*>*>(obj);
         return Dictionary<std::string, Variant*>::equal(static_cast<Dictionary<std::string, Variant*>*>(obj));
       };
     };
@@ -95,7 +93,7 @@ namespace Test{
       ->execute();
       RUN_TEST<bool>("TESTING_VALUEOF_MYOBJECT")
       ->scenario([](){ return dNode::isValueOf<MyObject>(new dNode::Object()); })
-      ->evalWith(TEST_EQUAL, true)
+      ->evalWith(TEST_EQUAL, false)
       ->execute();
 
       RUN_TEST<int>("TESTING_INT_CASTING")

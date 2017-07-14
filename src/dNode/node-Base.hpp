@@ -443,8 +443,11 @@ namespace dNode{
       else return "";
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, T>::value, T*>::type as(){
-      if (this->_type == TYPE_OBJECT) return static_cast<typename clearPointer<T>::type*>(this->_value.asObject);
+    typename enableIf<isBaseOf<Object, T>::value, T*>::type as(){
+      if (this->_type == TYPE_OBJECT){
+        if (isSame<T, Object>::value) return this->_value.asObject;
+        else return static_cast<typename clearPointer<T>::type*>(this->_value.asObject);
+      }
       else return NULL;
     };
 
@@ -456,7 +459,7 @@ namespace dNode{
       return this->as<T>();
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, T>::value && isPointer<T>::value,
+    typename enableIf<isBaseOf<Object, T>::value && isPointer<T>::value,
       typename clearPointer<T>::type*>::type operator=(dNode::Object* value){
       this->set(value);
       return this->as<T>();
@@ -482,7 +485,7 @@ namespace dNode{
       };
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Comparable, T>::value && !isVariant<T>::value, bool>::type compare(T* obj){
+    typename enableIf<isBaseOf<Comparable, T>::value && !isVariant<T>::value, bool>::type compare(T* obj){
       if (obj == NULL || this->_type != TYPE_OBJECT) return -2;
       else return static_cast<dNode::Comparable*>(obj)->compare(static_cast<dNode::Comparable*>(this->_value.asObject));
     };
@@ -504,7 +507,7 @@ namespace dNode{
       };
     };
     template<typename T>
-    typename enableIf<isBaseOf<dNode::Object, T>::value && !isVariant<T>::value, bool>::type equal(T* obj){
+    typename enableIf<isBaseOf<Object, T>::value && !isVariant<T>::value, bool>::type equal(T* obj){
       LOG("execute Variant Object equality", 2);
       if (obj == NULL || this->_type != TYPE_OBJECT) return false;
       else return this->_value.asObject->equal(obj);

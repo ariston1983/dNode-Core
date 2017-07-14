@@ -18,6 +18,15 @@ namespace dNode{
   /******************************************************************************
   * Type helper
   ******************************************************************************/
+  template<typename T, typename U>
+  struct isSame{ static const bool value = false; };
+  template<typename T>
+  struct isSame<T, T>{ static const bool value = true; };
+  template<bool condition, typename T = void>
+  struct enableIf{ };
+  template<typename T>
+  struct enableIf<true, T>{ typedef T type; };
+  
   template<typename T>
   struct pointer_template{ static const bool value = false; };
   template<typename T>
@@ -92,18 +101,14 @@ namespace dNode{
   template<class TBase, class TDerived>
   struct isBaseOf: pre_based_of<typename clearClass<TBase>::type, typename clearClass<TDerived>::type>{ };
 
+  template<typename T, typename U>
+  typename enableIf<isBaseOf<T, U>::value || isSame<T, U>::value, bool>::type isValueOf(U* value){ return true; };
+  template<typename T, typename U>
+  typename enableIf<!isBaseOf<T, U>::value && !isSame<T, U>::value, bool>::type isValueOf(U* value){ return false; };
+
   class Variant;
   template<typename T>
   struct isVariant{ static const bool value = isBaseOf<dNode::Variant, typename clearClass<T>::type>::value; };
-
-  template<typename T, typename U>
-  struct isSame{ static const bool value = false; };
-  template<typename T>
-  struct isSame<T, T>{ static const bool value = true; };
-  template<bool condition, typename T = void>
-  struct enableIf{ };
-  template<typename T>
-  struct enableIf<true, T>{ typedef T type; };
 
   template<typename T>
   struct isBool{ static const bool value = isSame<bool, T>::value; };

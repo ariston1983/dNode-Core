@@ -21,8 +21,25 @@ namespace Test{
       };
       virtual std::string toString(){ return this->getName(); };
     };
-    Dictionary<std::string, dNode::Variant*>* createDictionary(){
-      Dictionary<std::string, dNode::Variant*>* _dict = new Dictionary<std::string, dNode::Variant*>();
+    Dictionary<std::string, Variant*>* createDictionary(){
+      Dictionary<std::string, Variant*>* _dict = new Dictionary<std::string, Variant*>();
+      _dict->add("name", dNode::var("Mike"));
+      _dict->add("age", dNode::var(30));
+      return _dict;
+    };
+    class MyDictionary: public Dictionary<std::string, Variant*>{
+    public:
+      MyDictionary(): Dictionary<std::string, Variant*>(){ };
+      virtual bool equal(Object* obj){
+        if (obj == NULL){ LOG("MyDictionary equality NULL", 2); return false; };
+        if (!dNode::isValueOf<MyDictionary>(obj)){ LOG("MyDictionary equality invalid value", 2); return false; };
+        LOG("MyDictionary equality execute Dictionary equality", 2);
+        // Dictionary<std::string, Variant*>* _cmp = static_cast<Dictionary<std::string, Variant*>*>(obj);
+        return Dictionary<std::string, Variant*>::equal(static_cast<Dictionary<std::string, Variant*>*>(obj));
+      };
+    };
+    MyDictionary* createMyDictionary(){
+      MyDictionary* _dict = new MyDictionary();
       _dict->add("name", dNode::var("Mike"));
       _dict->add("age", dNode::var(30));
       return _dict;
@@ -72,6 +89,15 @@ namespace Test{
       })
       ->execute();
 
+      RUN_TEST<bool>("TESTING_VALUEOF_OBJECT")
+      ->scenario([](){ return dNode::isValueOf<dNode::Object>(new MyObject("Mike")); })
+      ->evalWith(TEST_EQUAL, true)
+      ->execute();
+      RUN_TEST<bool>("TESTING_VALUEOF_MYOBJECT")
+      ->scenario([](){ return dNode::isValueOf<MyObject>(new dNode::Object()); })
+      ->evalWith(TEST_EQUAL, true)
+      ->execute();
+
       RUN_TEST<int>("TESTING_INT_CASTING")
       ->scenario([](){ return val(ptr(100)); })
       ->evalWith(TEST_EQUAL, 100)
@@ -97,8 +123,24 @@ namespace Test{
       RUN_TEST<Dictionary<std::string, dNode::Variant*>*>("TEST_DICTIONARY_EQ")
       ->scenario([](){ return createDictionary(); })
       ->evalWith([](TEST_OP op, Dictionary<std::string, dNode::Variant*>* value){
-        if (value == NULL){ LOG("missing value", 2); return false; };
-        if (val(value) != val(createDictionary())){ LOG("invalid dictionary", 2); return false; };
+        if (value == NULL){ LOG("missing value", 2); return false; }
+        if (val(value) != val(createDictionary())){ LOG("invalid dictionary", 2); return false; }
+        return true;
+      })
+      ->execute();
+      RUN_TEST<MyDictionary*>("TEST_MYDICTIONARY_EQ")
+      ->scenario([](){ return createMyDictionary(); })
+      ->evalWith([](TEST_OP op, MyDictionary* value){
+        if (value == NULL){ LOG("missing value", 2); return false; }
+        if (val(value) != val(createMyDictionary())){ LOG("invalid dictionary", 2); return false; }
+        return true;
+      })
+      ->execute();
+      RUN_TEST<Variant*>("TEST_VAR_MYDICTIONARY")
+      ->scenario([](){ return dNode::var(createMyDictionary()); })
+      ->evalWith([](TEST_OP op, Variant* value){
+        if (value == NULL){ LOG("missing value", 2); return false; }
+        if (val(value) != val(dNode::var(createMyDictionary()))){ LOG("invalid dictionary", 2); return false; }
         return true;
       })
       ->execute();

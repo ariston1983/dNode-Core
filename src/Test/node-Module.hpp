@@ -19,10 +19,10 @@ namespace Test{
         _obj->add("age", dNode::var(30));
         return _obj;
       };
-      dNode::Variant* createParams(){ return dNode::var(createObjectInfo()); };
+      Variant* createParams(){ return dNode::var(createObjectInfo()); };
       class Request: public ExecuteInfo{
       public:
-        Request(std::string module, std::string method, dNode::Variant* params = NULL)
+        Request(std::string module, std::string method, Variant* params = NULL)
         : ExecuteInfo(module, method, params){ };
       };
 
@@ -32,6 +32,15 @@ namespace Test{
         ->evalWith([](TEST_OP op, ObjectInfo* value){
           if (value == NULL){ LOG("missing value", 2); return false; };
           if (val(value) != val(createObjectInfo())){ LOG("invalid value", 2); return false; };
+          return true;
+        })
+        ->execute();
+
+        RUN_TEST<Variant*>("TEST_MODULE_VAR_OBJECTINFO")
+        ->scenario([](){ return dNode::var(createObjectInfo()); })
+        ->evalWith([](TEST_OP op, Variant* value){
+          if (value == NULL){ LOG("missing value", 2); return false; };
+          if (val(value) != val(dNode::var(createObjectInfo()))){ LOG("invalid value", 2); return false; };
           return true;
         })
         ->execute();

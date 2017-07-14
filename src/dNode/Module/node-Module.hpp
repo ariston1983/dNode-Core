@@ -6,28 +6,22 @@
 
 namespace dNode{
   namespace Module{
-    class ObjectInfo: public dNode::Dictionary<std::string, dNode::Variant*>{
+    class ObjectInfo: public Dictionary<std::string, Variant*>{
     public:
-      ObjectInfo(): Dictionary<std::string, dNode::Variant*>(){ };
-      template<typename T>
-      typename enableIf<isBaseOf<ObjectInfo, T>::value, bool>::type equal(T* obj){
-        LOG("execute ObjectInfor equality", 2);
-        if (obj == NULL) return false;
-        return dNode::Dictionary<std::string, dNode::Variant*>::equal(static_cast<Dictionary<std::string, dNode::Variant*>*>(obj));
-      };
+      ObjectInfo(): Dictionary<std::string, Variant*>(){ };
     };
-    class ArrayInfo: public dNode::List<dNode::Variant*>{
+    class ArrayInfo: public List<Variant*>{
     public:
-      ArrayInfo(): List<dNode::Variant*>(){ };
+      ArrayInfo(): List<Variant*>(){ };
     };
     
     class ExecuteInfo : public Object{
     private:
       std::string _module;
       std::string _method;
-      dNode::Variant* _params;
+      Variant* _params;
     public:
-      ExecuteInfo(std::string module, std::string method, dNode::Variant* params = NULL)
+      ExecuteInfo(std::string module, std::string method, Variant* params = NULL)
       : Object(){
         this->_module = module;
         this->_method = method;
@@ -36,7 +30,7 @@ namespace dNode{
       };
       std::string getModule(){ return this->_module; };
       std::string getMethod(){ return this->_method; };
-      dNode::Variant* getParams(){ return this->_params; };
+      Variant* getParams(){ return this->_params; };
 
       template<typename T>
       typename enableIf<isBaseOf<ExecuteInfo, T>::value, bool>::type equal(T* obj){

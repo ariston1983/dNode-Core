@@ -19,34 +19,48 @@ using namespace dNode;
 //   virtual void test(){ };
 // };
 
-template<typename T>
+template<typename TDerived>
 class Base{
 private:
-  const T* impl() const{
-    return static_cast<const T*>(this);
+  TDerived* impl(){
+    return static_cast<TDerived*>(this);
   };
 public:
-  template<typename U>
-  bool is() const{
-    return impl()->template as<U>();
+  typedef TDerived type;
+  bool equal(Base<TDerived>* obj){
+    return impl()->equal(static_cast<TDerived*>(obj));
+  };
+  template<typename TCompare>
+  friend bool operator==(Base<TDerived>& lhs, TCompare& rhs){
+    return ptr(lhs)->equal(ptr(rhs));
   };
 };
 class Derived: public Base<Derived>{
+private:
+  int _age;
 public:
-  template<typename U>
-  bool is() const{
-    return isNative<U>::value;
+  Derived(int age){ this->_age = age; };
+  int getAge(){ return this->_age; };
+  bool equal(Derived* obj){
+    return this->getAge() == obj->getAge();
   };
+};
+class Dump: public Base<Dump>{
+};
+template<typename T, typename U>
+bool isTypeOf(Base<U>& value){
+  return isSame<typename Base<U>::type, T>::value;
 };
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
-  
-  Derived* _d = new Derived();
-  Serial.println(_d->is<bool>());
-  Serial.println(_d->is<Derived>());
 
+  Derived _a(10);
+  Derived _b(10);
+  //Serial.println(isEqual(_a, _b));
+  Serial.println(isTypeOf<Derived>(_a));
+  
   // Object* _f = new FirstClass("Mike");
   // Object* _s = new SecondClass(30);
   // Serial.println(val(_f) == val(_s));

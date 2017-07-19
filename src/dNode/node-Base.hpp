@@ -26,9 +26,9 @@ namespace dNode{
       isBaseOf<dNode::Object, TLeft>::value && isNative<TRight>::value, bool>::type operator!=(TLeft& lhs, TRight rhs){ return !lhs.equal(rhs); };
 
     template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T&rhs){ return lhs.equal(ptr(rhs)); };
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T& rhs){ return lhs.equal(ptr(rhs)); };
     template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T&rhs){ return !lhs.equal(ptr(rhs)); };
+    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T& rhs){ return !lhs.equal(ptr(rhs)); };
   };
   template<typename T>
   struct isObject{ static const bool value = isBaseOf<dNode::Object, T>::value; };

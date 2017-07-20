@@ -8,65 +8,65 @@
 
 using namespace dNode;
 
+template<typename TClass, typename TBase>
+class MetaInfo{
+  typedef TClass this_class;
+  typedef TBase this_base;
+public:
+  template<typename T>
+  bool assignableFrom(){
+    return isBaseOf<typename this_class, T>::value;
+  };
+}
+
 // class Base{
+// protected:
+//   virtual bool isType(const std::string&) const { return false; };
 // public:
-//   Base(){ };
-//   virtual void test(){ };
+//   virtual const std::string& getTypeId() const = 0;
+//   virtual bool equal(const Base&) const { return false; };
 // };
 // class Derived: public Base{
+// protected:
+//   virtual bool isType(const std::string& typeId) const override {
+//     return (typeId == "Derived" || Base::isType(typeId));
+//   };
 // public:
-//   Derived(): Base(){ };
-//   virtual void test(){ };
+//   virtual const std::string& getTypeId() const override {
+//     static std::string _typeId("Derived");
+//     return _typeId;
+//   };
+//   virtual bool equal(const Base& obj) const override {
+//     return isType(obj.getTypeId());
+//   };
 // };
-
-template<typename TDerived>
-class Base{
-private:
-  TDerived* impl(){
-    return static_cast<TDerived*>(this);
-  };
-public:
-  typedef TDerived type;
-  bool equal(Base<TDerived>* obj){
-    return impl()->equal(static_cast<TDerived*>(obj));
-  };
-  template<typename TCompare>
-  friend bool operator==(Base<TDerived>& lhs, TCompare& rhs){
-    return ptr(lhs)->equal(ptr(rhs));
-  };
-};
-class Derived: public Base<Derived>{
-private:
-  int _age;
-public:
-  Derived(int age){ this->_age = age; };
-  int getAge(){ return this->_age; };
-  bool equal(Derived* obj){
-    return this->getAge() == obj->getAge();
-  };
-};
-class Dump: public Base<Dump>{
-};
-template<typename T, typename U>
-bool isTypeOf(Base<U>& value){
-  return isSame<typename Base<U>::type, T>::value;
-};
+// class Child: public Base{
+// protected:
+//   virtual bool isType(const std::string& typeId) const override {
+//     return (typeId == "Child" || Base::isType(typeId));
+//   };
+// public:
+//   virtual const std::string& getTypeId() const override {
+//     static std::string _typeId("Child");
+//     return _typeId;
+//   };
+//   virtual bool equal(const Base& obj) const override {
+//     return isType(obj.getTypeId());
+//   };
+// };
+// bool isEqual(const Base& lhs, const Base& rhs){ return lhs.equal(rhs); };
 
 void setup(){
   Serial.begin(115200);
   Serial.println();
 
-  Derived _a(10);
-  Derived _b(10);
-  //Serial.println(isEqual(_a, _b));
-  Serial.println(isTypeOf<Derived>(_a));
-  
-  // Object* _f = new FirstClass("Mike");
-  // Object* _s = new SecondClass(30);
-  // Serial.println(val(_f) == val(_s));
+  // Derived _d1;
+  // Derived _d2;
+  // Child _c1;
+  // Child _c2;
 
-  // TEST_INIT();
-  // Test::Base::EXECUTE();
-  // Test::Module::Base::EXECUTE();
+  // Serial.println(isEqual(_d1, _d2));
+  // Serial.println(isEqual(_d1, _c1));
+  // Serial.println(isEqual(_c1, _c2));
 };
 void loop(){};

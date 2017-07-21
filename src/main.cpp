@@ -4,20 +4,11 @@
 #include "Arduino.h"
 #include "dNode-Core.hpp"
 #include "Test/test-List.hpp"
+#include "dNode/node-Reflection.hpp"
 // #include "dNode/node-Base.hpp"
 
 using namespace dNode;
 
-template<typename TClass, typename TBase>
-class MetaInfo{
-  typedef TClass this_class;
-  typedef TBase this_base;
-public:
-  template<typename T>
-  bool assignableFrom(){
-    return isBaseOf<typename this_class, T>::value;
-  };
-}
 
 // class Base{
 // protected:

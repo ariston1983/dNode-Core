@@ -4,11 +4,54 @@
 #include "Arduino.h"
 #include "dNode-Core.hpp"
 #include "Test/test-List.hpp"
-#include "dNode/node-Reflection.hpp"
+// #include "dNode/node-Reflection.hpp"
 // #include "dNode/node-Base.hpp"
 
 using namespace dNode;
 
+template<typename T>
+std::string addOn(){
+  return T::getTypeId();
+};
+
+class Base{
+public:
+  static std::string& getTypeId(){
+    static std::string _typeId("Base");
+    return _typeId;
+  };
+};
+template<typename T, typename U>
+class Derived: public Base{
+public:
+  static std::string& getTypeId(){
+    static std::string _typeId("Derived<");
+    _typeId += addOn<T>();
+    _typeId += ",";
+    _typeId += addOn<U>();
+    _typeId += ">";
+    return _typeId;
+  };
+};
+class Child{
+public:
+  static std::string& getTypeId(){
+    static std::string _typeId("Child");
+    return _typeId;
+  };
+};
+class Dummy{
+public:
+  static std::string& getTypeId(){
+    static std::string _typeId("Dummy");
+    return _typeId;
+  };
+};
+
+template<typename T>
+void printTypeId(){
+  Serial.println(T::getTypeId().c_str());
+};
 
 // class Base{
 // protected:
@@ -51,6 +94,11 @@ void setup(){
   Serial.begin(115200);
   Serial.println();
 
+  printTypeId<Base>();
+  printTypeId<Child>();
+  printTypeId<Dummy>();
+  printTypeId<Derived<Child, Dummy>>();
+  
   // Derived _d1;
   // Derived _d2;
   // Child _c1;

@@ -20,6 +20,7 @@ public:
     static std::string _typeId("Base");
     return _typeId;
   };
+  virtual std::string& getType(){ return getTypeId(); };
 };
 template<typename T, typename U>
 class Derived: public Base{
@@ -32,6 +33,11 @@ public:
     _typeId += ">";
     return _typeId;
   };
+  virtual std::string& getType(){ return getTypeId(); };
+  bool equal(Base* obj){
+    Serial.println(obj->getType().c_str());
+    return getTypeId() == obj->getType();
+  };
 };
 class Child{
 public:
@@ -39,6 +45,7 @@ public:
     static std::string _typeId("Child");
     return _typeId;
   };
+  virtual std::string& getType(){ return getTypeId(); };
 };
 class Dummy{
 public:
@@ -98,6 +105,13 @@ void setup(){
   printTypeId<Child>();
   printTypeId<Dummy>();
   printTypeId<Derived<Child, Dummy>>();
+
+  Derived<Child, Dummy> _d1;
+  Derived<Child, Dummy> _d2;
+  Derived<Child, Child> _d3;
+
+  Serial.println(_d1.equal(&_d2));
+  Serial.println(_d1.equal(&_d3));
   
   // Derived _d1;
   // Derived _d2;

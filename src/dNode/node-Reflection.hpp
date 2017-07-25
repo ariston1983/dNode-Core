@@ -9,6 +9,16 @@ namespace dNode{
   class Variant;
 
   namespace Reflection{
+    #define OBJECT_TYPEINFO(ThisClass, BaseClass, ThisClassId) \
+    public: \
+      static std::string& getTypeId(){ \
+        static std::string _typeId(ThisClassId); \
+        return _typeId; \
+      }; \
+      virtual std::string& getType(){ return ThisClass::getTypeId(); }; \
+      virtual bool assignableFrom(Object& obj){ return obj.isSubclassOf(this->getType()); }; \
+      virtual bool isSubclassOf(const std::string& typeId){ return typeId == ThisClass::getTypeId() || BaseClass::isSubclassOf(typeId); };
+      
     template<class TClass>
     typename enableIf<isBaseOf<Object, typename TClass>::value, typename TClass>::type* create(Variant* param = NULL){
       if (param == NULL) return new TClass();

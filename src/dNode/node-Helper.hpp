@@ -7,6 +7,8 @@
 #include "ArduinoJson.h"
 
 namespace dNode{
+  class Object;
+  
   /******************************************************************************
   * Pointer helper
   ******************************************************************************/
@@ -157,6 +159,26 @@ namespace dNode{
   T* ptr(T& value, typename enableIf<!isChars<T>::value, typename clearType<T>::type>::type* = 0){ return &value; };
   template<typename T>
   T* ptr(T* value, typename enableIf<!isChars<T>::value, typename clearType<T>::type>::type* = 0){ return value; };
+
+  template<typename T>
+  std::string getTypeName(){
+    if (isSame<bool, T>::value) return std::string("bool");
+    else if (isSame<signed char, T>::value) return std::string("byte");
+    else if (isSame<unsigned char, T>::value) return std::string("ubyte");
+    else if (isSame<signed short, T>::value) return std::string("short");
+    else if (isSame<unsigned short, T>::value) return std::string("ushort");
+    else if (isSame<signed int, T>::value) return std::string("int");
+    else if (isSame<unsigned int, T>::value) return std::string("uint");
+    else if (isSame<signed long, T>::value) return std::string("long");
+    else if (isSame<unsigned long, T>::value) return std::string("ulong");
+    else if (isSame<float, T>::value) return std::string("float");
+    else if (isSame<double, T>::value) return std::string("double");
+    else if (isSame<char, T>::value) return std::string("char");
+    else if (isSame<const char*, T>::value) return std::string("const char");
+    else if (isSame<std::string, T>::value) return std::string("string");
+    else if (isBaseOf<Object, T>::value) return T::getTypeId();
+    else return std::string("unknown");
+  };
 };
 
 bool isJSONBool(JsonVariant json){ return json.is<bool>(); };

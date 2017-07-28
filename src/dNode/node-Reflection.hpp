@@ -9,13 +9,13 @@ namespace dNode{
   class Variant;
 
   namespace Reflection{
-    #define OBJECT_TYPEIF() \
+    #define OBJECT_TYPEINFO(ClassId) \
     public: \
       static std::string& getTypeId(){ \
-        static std::string _typeId(ThisClassId); \
+        static std::string _typeId(ClassId); \
         return _typeId; \
       };
-    #define REFLECTION_INFO(ThisClass, BaseClass, ThisClassId) \
+    #define REFLECTION_TYPEINFO(ThisClass, BaseClass) \
     public: \
       virtual std::string& getType(){ return ThisClass::getTypeId(); }; \
       virtual bool assignableFrom(Object& obj){ return obj.isSubclassOf(this->getType()); }; \

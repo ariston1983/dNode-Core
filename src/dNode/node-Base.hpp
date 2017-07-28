@@ -15,6 +15,15 @@ namespace dNode{
   private:
   public:
     Object(){ };
+
+    static std::string& getTypeId(){
+      static std::string _typeId("Object");
+      return _typeId;
+    };
+    virtual std::string& getType(){ return Object::getTypeId(); };
+    virtual bool assignableFrom(Object& obj){ return obj.isSubclassOf(this->getType()); };
+    virtual bool isSubclassOf(const std::string& typeId){ return typeId == Object::getTypeId(); };
+
     virtual std::string toString(){ return ""; };
     virtual bool equal(dNode::Object* obj){ LOG("execute Object equality", 2); return false; };
 

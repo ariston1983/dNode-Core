@@ -92,7 +92,7 @@ namespace dNode{
       return _data;
     };
 
-    class ModuleBase: public Object{
+    class IModule: public Object{
     private:
       std::string _moduleName;
       std::string _moduleVersion;
@@ -122,41 +122,5 @@ namespace dNode{
       std::string getModuleName(){ return this->_moduleName; };
       std::string getModuleVersion(){ return this->_moduleVersion; };
     };
-
-    // class JSONArgument: public Variant
-    // , public JSONObject{
-    // public:
-    //   JSONArgument(JsonVariant json)
-    //   : Variant(){
-    //     if (!this->fromJSON(json)) this->_type = TYPE_INVALID;
-    //   };
-    //   bool fromJSON(JsonVariant json){
-    //     if (json.success()){
-    //       if (json.is<JsonArray>()){
-    //         dNode::List<JSONArgument*>* _arr = new dNode::List<JSONArgument*>();
-    //         for (auto _el: json.as<JsonArray>()){
-    //           JSONArgument* _arg = new JSONArgument(_el);
-    //           if (_arg->valid()) _arr->add(_arg);
-    //           else return false;
-    //         }
-    //         this->set(_arr);
-    //       }
-    //       else if (json.is<JsonObject>()){
-    //       }
-    //       else if (json.is<bool>()) this->set(json.as<bool>());
-    //       else if (json.is<unsigned long>()) this->set(json.as<unsigned long>());
-    //       else if (json.is<float>()) this->set(json.as<float>());
-    //       else if (json.is<const char*>()) this->set(json.as<const char*>());
-    //       else return false;
-    //     }
-    //     else return false;
-    //   };
-    //   void fillJSON(JsonVariant json){};
-    // };
-    // class JSONParam: public JSONObject{};
-    // class JSONInvoker: public Dictionary<std::string, JSONParam>
-    // , public JSONObject{
-
-    // };
   };
 };

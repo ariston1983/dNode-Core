@@ -7,6 +7,15 @@
 #include "node-Helper.hpp"
 #include "Logger/node-Logger.hpp"
 
+#define CLASS_INFO(Class, BaseClass, ClassId) \
+public: \
+  static std::string& classId(){ \
+    static std::string _typeId(ClassId); \
+    return _typeId; \
+  }; \
+  virtual std::string& getClassId() override{ return Class::classId(); }; \
+  virtual bool isTypeOf(const std::string& type) override{ return type == ClassId || BaseClass::isTypeOf(type); };
+
 /****************************************************************************
  * Base interfaces
  ****************************************************************************/
@@ -14,40 +23,36 @@ namespace dNode{
   class Object{
   private:
   public:
-    Object(){ };
-
-    static std::string& getTypeId(){
-      static std::string _typeId("Object");
+    static std::string& classId(){
+      static std::string _typeId("dnode::object");
       return _typeId;
     };
-    virtual std::string& getType(){ return Object::getTypeId(); };
-    virtual bool assignableFrom(Object& obj){ return obj.isSubclassOf(this->getType()); };
-    virtual bool isSubclassOf(const std::string& typeId){ return typeId == Object::getTypeId(); };
-
-    virtual std::string toString(){ return ""; };
-    virtual bool equal(dNode::Object* obj){ LOG("execute Object equality", 2); return false; };
+    virtual std::string& getClassId(){ return Object::classId(); };
+    virtual bool isTypeOf(const std::string& type){ return type == "dnode::object"; };
+    virtual std::string toString(){ getClassId(); };
+    virtual bool equal(Object& obj){ LOG("execute Object equality", 2); return false; };
 
     template<typename TLeft, typename TRight>
     friend typename enableIf<
-      isBaseOf<dNode::Object, TLeft>::value && isNative<TRight>::value, bool>::type operator==(TLeft& lhs, TRight rhs){ return lhs.equal(rhs); };
+      isBaseOf<Object, TLeft>::value && isNative<TRight>::value, bool>::type operator==(TLeft& lhs, TRight rhs){ return lhs.equal(rhs); };
     template<typename TLeft, typename TRight>
     friend typename enableIf<
-      isBaseOf<dNode::Object, TLeft>::value && isNative<TRight>::value, bool>::type operator!=(TLeft& lhs, TRight rhs){ return !lhs.equal(rhs); };
+      isBaseOf<Object, TLeft>::value && isNative<TRight>::value, bool>::type operator!=(TLeft& lhs, TRight rhs){ return !lhs.equal(rhs); };
 
     template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator==(T& lhs, T& rhs){ return lhs.equal(ptr(rhs)); };
+    friend typename enableIf<isBaseOf<Object, T>::value, bool>::type operator==(T& lhs, T& rhs){ return lhs.equal(rhs); };
     template<typename T>
-    friend typename enableIf<isBaseOf<dNode::Object, T>::value, bool>::type operator!=(T& lhs, T& rhs){ return !lhs.equal(ptr(rhs)); };
+    friend typename enableIf<isBaseOf<Object, T>::value, bool>::type operator!=(T& lhs, T& rhs){ return !lhs.equal(rhs); };
   };
   template<typename T>
-  struct isObject{ static const bool value = isBaseOf<dNode::Object, T>::value; };
+  struct isObject{ static const bool value = isBaseOf<Object, T>::value; };
 
   class Comparable: public dNode::Object{
+  CLASS_INFO(Comparable, Object, "dnode::comparable")
   public:
-    Comparable(): Object(){};
     template<typename T>
     typename enableIf<isNative<T>::value, int>::type compare(T obj){ return -2; };
-    virtual int compare(dNode::Comparable* obj){ return -2; };
+    virtual int compare(Comparable* obj){ return -2; };
 
     template<typename TLeft, typename TRight>
     friend typename enableIf<
